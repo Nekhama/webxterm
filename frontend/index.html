@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>webXTerm</title>
+    <link rel="icon" type="image/x-icon" href="/static/assets/favicon.ico">
+
+    <!-- xterm.js CSS -->
+    <link rel="stylesheet" href="/static/css/xterm.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/main.css">
+
+    <!-- Dark Theme CSS Variables (Fixed) -->
+    <style>
+        :root {
+            --primary-bg: #1e1e1e;
+            --secondary-bg: #2d2d2d;
+            --sidebar-bg: #252526;
+            --border-color: #3e3e42;
+            --text-primary: #cccccc;
+            --text-secondary: #969696;
+            --accent-blue: #007acc;
+            --accent-green: #16825d;
+            --accent-red: #f14c4c;
+            --accent-orange: #ff8c00;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <div id="app" class="app-container">
+        <!-- Independent logo header -->
+        <div class="logo-header">
+            <h1 class="app-title" id="app-title" style="cursor: pointer;" title="About webXTerm">
+                <span class="terminal-icon">⚡</span>
+                webXTerm v1.0
+            </h1>
+            <!-- Mobile sidebar toggle button -->
+            <button id="mobile-sidebar-toggle" class="icon-btn" aria-label="Toggle Sidebar" onclick="(function(){var s=document.querySelector('.session-sidebar');if(s.style.transform==='translateX(0px)'){s.style.transform='translateX(-100%)'}else{s.style.transform='translateX(0)'}})()">☰</button>
+            <div class="language-selector">
+                <button id="lang-toggle" class="icon-btn" data-i18n-title="tooltips.language">
+                    <span class="lang-icon">🌐</span>
+                    <span class="lang-text">EN</span>
+                    <span class="dropdown-arrow">▼</span>
+                </button>
+                <div id="lang-dropdown" class="language-dropdown" style="display: none;">
+                    <div class="lang-option" data-lang="en">
+                        <span class="lang-flag">🇺🇸</span>
+                        <span class="lang-name">English</span>
+                    </div>
+                    <div class="lang-option" data-lang="zh_CN">
+                        <span class="lang-flag">🇨🇳</span>
+                        <span class="lang-name">简体中文</span>
+                    </div>
+                    <div class="lang-option" data-lang="zh_TW">
+                        <span class="lang-flag">🇭🇰</span>
+                        <span class="lang-name">繁體中文</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar for session management -->
+        <aside id="sidebar" class="session-sidebar">
+            <!-- Mobile close button -->
+            <button id="sidebar-close-btn" class="sidebar-close-btn" aria-label="Close Sidebar" onclick="(function(){var s=document.querySelector('.session-sidebar');s.classList.remove('open');s.style.transform='translateX(-100%)'})()">✕</button>
+
+            <!-- Quick Connect Form -->
+            <div class="quick-connect-section">
+                <div class="section-header">
+                    <h3 data-i18n="form.quickConnect">Quick Connect</h3>
+                    <button type="button" id="quick-connect-toggle" class="section-toggle" data-i18n-title="form.toggleQuickConnect">
+                        <span class="toggle-icon">▼</span>
+                    </button>
+                </div>
+                <form id="quick-connect-form" class="connect-form">
+                    <div class="form-row-compact">
+                        <label for="hostname" data-i18n="form.hostname">主机：</label>
+                        <input type="text" id="hostname" name="hostname" required
+                               data-i18n-placeholder="form.hostnamePlaceholder">
+                    </div>
+
+                    <div class="form-row-protocol">
+                        <label for="protocol-port" data-i18n="form.protocolPort">协议/端口：</label>
+                        <div class="protocol-port-group">
+                            <select id="connection-type" name="connection_type">
+                                <option value="ssh">SSH</option>
+                                <option value="telnet">TELNET</option>
+                            </select>
+                            <input type="number" id="port" name="port"
+                                   value="22" min="1" max="65535" data-i18n-title="form.port">
+                        </div>
+                    </div>
+
+                    <div class="form-row-compact">
+                        <label for="username" data-i18n="form.username">用户名：</label>
+                        <input type="text" id="username" name="username" required
+                               data-i18n-placeholder="form.usernamePlaceholder">
+                    </div>
+
+                    <div class="form-row-compact">
+                        <label for="password" data-i18n="form.password">密码：</label>
+                        <input type="password" id="password" name="password"
+                               data-i18n-placeholder="form.passwordPlaceholder">
+                    </div>
+
+                    <div class="more-options-toggle">
+                        <button type="button" id="more-options-btn" class="btn-link">
+                            <span class="toggle-icon">▼</span>
+                            <span class="toggle-text" data-i18n="form.moreOptions">更多选项</span>
+                        </button>
+                    </div>
+
+                    <div id="ssh-options" class="ssh-options hidden">
+                        <div class="form-row-compact">
+                            <label for="ssh-key-select" id="ssh-key-label" class="clickable-label" data-i18n="form.sshKey" data-i18n-title="sshKeys.clickToManage">SSH密钥：</label>
+                            <select id="ssh-key-select" name="ssh_key_id">
+                                <option value="" data-i18n="form.sshKeyNone">不使用密钥</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row-compact">
+                            <label for="private-key" data-i18n="form.privateKey">私钥：</label>
+                            <textarea id="private-key" name="private_key"
+                                    data-i18n-placeholder="form.privateKeyPlaceholder" rows="3"></textarea>
+                        </div>
+
+                        <div class="form-row-compact">
+                            <label for="passphrase" data-i18n="form.passphrase">密钥密码：</label>
+                            <input type="password" id="passphrase" name="passphrase"
+                                   data-i18n-placeholder="form.passphrasePlaceholder">
+                        </div>
+
+                        <div class="form-row-compact">
+                            <label for="encoding" data-i18n="form.encoding">服务器编码：</label>
+                            <select id="encoding" name="encoding">
+                                <option value="auto" selected data-i18n="form.encodingAuto">自动检测</option>
+                                <option value="utf-8" data-i18n="form.encodingUtf8">UTF-8</option>
+                                <option value="gbk" data-i18n="form.encodingGbk">GBK/GB2312</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="connect-btn">
+                            <span class="btn-icon">⚡</span>
+                            <span data-i18n="buttons.connect">连接</span>
+                        </button>
+                        <button type="button" class="btn btn-danger hidden" id="disconnect-btn">
+                            <span class="btn-icon">⚡</span>
+                            <span data-i18n="buttons.disconnect">断开</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="save-session-btn">
+                            <span class="btn-icon">💾</span>
+                            <span data-i18n="buttons.save">保存</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Saved Sessions -->
+            <div class="saved-sessions-section">
+                <div class="section-header">
+                    <h3 data-i18n="sessions.saved">Saved Sessions</h3>
+                    <div class="section-actions">
+                        <input type="text" id="session-search" class="session-search"
+                               data-i18n-placeholder="form.searchPlaceholder" autocomplete="off">
+                        <button id="add-session" class="icon-btn" data-i18n-title="tooltips.newSession">
+                            <span>➕</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="sessions-list" class="sessions-list">
+                    <div class="loading" data-i18n="sessions.loading">Loading sessions...</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content area -->
+        <main class="main-content">
+            <!-- Status bar -->
+            <div id="status-bar" class="status-bar">
+                <div class="status-left">
+                    <span id="connection-status" class="status-item disconnected">
+                        <span class="status-dot"></span>
+                        <span data-i18n="status.disconnected">Disconnected</span>
+                    </span>
+                    <span id="connection-info" class="status-item"></span>
+                </div>
+                <div class="status-right">
+                    <button id="disconnect-current-session" class="icon-btn"
+                            data-i18n-title="tooltips.disconnectCurrentSession" style="display: none;">
+                        <span>⏸️</span>
+                    </button>
+                    <span id="terminal-size" class="status-item" data-i18n-title="tooltips.terminalSize">80x24</span>
+                    <button id="manage-keys-btn" class="icon-btn" data-i18n-title="sshKeys.manage">
+                        <span>🔑</span>
+                    </button>
+                    <button id="fullscreen-toggle" class="icon-btn" data-i18n-title="tooltips.fullscreen">
+                        <span>⛶</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Terminal container -->
+            <div id="terminal-container" class="terminal-container">
+                <!-- Terminal area -->
+                <div id="terminal-area" class="terminal-area">
+                    <!-- Single session terminal -->
+                    <div id="terminal" class="terminal"></div>
+
+                    <div id="terminal-overlay" class="terminal-overlay">
+                        <div class="overlay-content">
+                            <div class="overlay-message" id="overlay-message" data-i18n="form.connectPrompt">
+                                Click "Connect" to start a new session
+                            </div>
+                            <div class="overlay-logo">⚡</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div id="session-modal" class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title" data-i18n="modals.saveSession.title">Save Session</h3>
+                <button id="modal-close" class="icon-btn">
+                    <span>✕</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="session-form">
+                    <div class="form-group">
+                        <label for="session-name" data-i18n="modals.saveSession.sessionName">Session Name</label>
+                        <input type="text" id="session-name" name="name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="session-hostname" data-i18n="modals.saveSession.hostname">Hostname</label>
+                        <input type="text" id="session-hostname" name="hostname" required
+                               data-i18n-placeholder="form.hostnamePlaceholder">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="session-connection-type" data-i18n="form.protocolPort">Protocol/Port</label>
+                        <div class="protocol-port-group">
+                            <select id="session-connection-type" name="connection_type">
+                                <option value="ssh">SSH</option>
+                                <option value="telnet">Telnet</option>
+                            </select>
+                            <input type="number" id="session-port" name="port"
+                                   value="22" min="1" max="65535" data-i18n-title="modals.saveSession.port">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="session-username" data-i18n="modals.saveSession.username">Username</label>
+                        <input type="text" id="session-username" name="username" required
+                               data-i18n-placeholder="form.usernamePlaceholder">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="session-password" data-i18n="form.password">Password</label>
+                        <input type="password" id="session-password" name="password"
+                               data-i18n-placeholder="form.passwordPlaceholder">
+                    </div>
+
+                    <div class="ssh-options-toggle">
+                        <button type="button" id="session-more-options-btn" class="btn-link">
+                            <span class="toggle-icon">▼</span>
+                            <span class="toggle-text" data-i18n="form.sshOptions">SSH Options</span>
+                        </button>
+                    </div>
+
+                    <div id="session-ssh-options" class="ssh-options hidden">
+                        <div class="form-group">
+                            <label for="session-ssh-key-select" data-i18n="form.sshKey">SSH密钥</label>
+                            <select id="session-ssh-key-select" name="ssh_key_id">
+                                <option value="" data-i18n="form.sshKeyNone">不使用密钥</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="session-private-key" data-i18n="form.privateKey">Private Key</label>
+                            <textarea id="session-private-key" name="private_key"
+                                    data-i18n-placeholder="form.privateKeyPlaceholder" rows="3"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="session-passphrase" data-i18n="form.passphrase">Key Passphrase</label>
+                            <input type="password" id="session-passphrase" name="passphrase"
+                                   data-i18n-placeholder="form.passphrasePlaceholder">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="session-group" data-i18n="form.group">Group (optional)</label>
+                        <div class="group-selector">
+                            <input type="text" id="session-group" name="group_name"
+                                   data-i18n-placeholder="form.groupPlaceholder"
+                                   autocomplete="off">
+                            <button type="button" id="group-dropdown-btn" class="dropdown-toggle">
+                                <span>▼</span>
+                            </button>
+                            <div id="group-dropdown" class="dropdown-menu hidden">
+                                <div class="dropdown-item" data-value="">No Group</div>
+                                <!-- Dynamic group options will be added here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="session-encoding" data-i18n="form.encoding">Server Encoding</label>
+                        <select id="session-encoding" name="encoding">
+                            <option value="auto" data-i18n="form.encodingAuto">自动检测</option>
+                            <option value="utf-8" data-i18n="form.encodingUtf8">UTF-8</option>
+                            <option value="gbk" data-i18n="form.encodingGbk">GBK/GB2312</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button id="session-save" class="btn btn-primary" data-i18n="modals.saveSession.save">Save</button>
+                <button id="session-cancel" class="btn btn-secondary" data-i18n="modals.saveSession.cancel">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div id="delete-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h3 id="delete-modal-title" data-i18n="modals.deleteSession.title">Delete Session</h3>
+                <button id="delete-modal-close" class="icon-btn">
+                    <span>✕</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="delete-modal-message" data-i18n="modals.deleteSession.message">Are you sure you want to delete this session?</p>
+                <div class="delete-warning">
+                    <span class="warning-icon">⚠️</span>
+                    <span data-i18n="modals.deleteSession.warning">This action cannot be undone.</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="delete-confirm" class="btn btn-danger" data-i18n="modals.deleteSession.confirm">Delete</button>
+                <button id="delete-cancel" class="btn btn-secondary" data-i18n="modals.deleteSession.cancel">Cancel</button>
+            </div>
+        </div>
+
+        <!-- SSH Key Management Modal -->
+        <div id="ssh-key-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h3 id="ssh-key-modal-title" data-i18n="sshKeys.modal.title">SSH Key Management</h3>
+                <button id="ssh-key-modal-close" class="icon-btn">
+                    <span>✕</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="ssh-keys-list">
+                    <div class="list-header">
+                        <button id="add-ssh-key-btn" class="btn btn-primary">
+                            <span>➕</span>
+                            <span data-i18n="sshKeys.add">Add SSH Key</span>
+                        </button>
+                    </div>
+                    <div id="ssh-keys-list-content">
+                        <!-- Keys will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- SSH Key Form (hidden by default) -->
+                <div id="ssh-key-form-container" class="ssh-key-form" style="display: none;">
+                    <h4 id="ssh-key-form-title" data-i18n="sshKeys.form.title">Add SSH Key</h4>
+                    <form id="ssh-key-form">
+                        <input type="hidden" id="ssh-key-id" name="id">
+
+                        <div class="form-group">
+                            <label for="ssh-key-name" data-i18n="sshKeys.form.name">Key Name *</label>
+                            <input type="text" id="ssh-key-name" name="name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ssh-key-description" data-i18n="sshKeys.form.description">Description</label>
+                            <input type="text" id="ssh-key-description" name="description">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ssh-key-private-key" data-i18n="sshKeys.form.privateKey">Private Key *</label>
+                            <textarea id="ssh-key-private-key" name="private_key" rows="8" required
+                                      data-i18n-placeholder="sshKeys.form.privateKeyPlaceholder"></textarea>
+                            <div class="form-hint">
+                                <button type="button" id="upload-key-file-btn" class="btn-link">
+                                    <span>📁</span>
+                                    <span data-i18n="sshKeys.form.uploadFile">Upload key file</span>
+                                </button>
+                                <input type="file" id="key-file-input" style="display: none;" accept=".pem,.key,.ppk,*">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ssh-key-passphrase" data-i18n="sshKeys.form.passphrase">Passphrase</label>
+                            <input type="password" id="ssh-key-passphrase" name="passphrase"
+                                   data-i18n-placeholder="sshKeys.form.passphrasePlaceholder">
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="submit" class="btn btn-primary" data-i18n="buttons.save">Save</button>
+                            <button type="button" id="cancel-ssh-key-form" class="btn btn-secondary" data-i18n="buttons.cancel">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete SSH Key Confirmation Modal -->
+        <div id="delete-ssh-key-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h3 id="delete-ssh-key-modal-title" data-i18n="sshKeys.modal.deleteTitle">Delete SSH Key</h3>
+                <button id="delete-ssh-key-modal-close" class="icon-btn">
+                    <span>✕</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="delete-ssh-key-modal-message" data-i18n="sshKeys.modal.deleteMessage">Are you sure you want to delete this SSH key?</p>
+                <div class="delete-warning">
+                    <span class="warning-icon">⚠️</span>
+                    <span data-i18n="sshKeys.modal.deleteWarning">This action cannot be undone.</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="delete-ssh-key-confirm" class="btn btn-danger" data-i18n="sshKeys.modal.deleteConfirm">Delete</button>
+                <button id="delete-ssh-key-cancel" class="btn btn-secondary" data-i18n="sshKeys.modal.deleteCancel">Cancel</button>
+            </div>
+        </div>
+
+        <!-- About Modal -->
+        <div id="about-modal" class="modal" style="display: none;">
+            <div class="modal-header">
+                <h3 id="about-modal-title" data-i18n="about.title">About webXTerm</h3>
+                <button id="about-modal-close" class="icon-btn">
+                    <span>✕</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="about-content">
+                    <div class="about-logo">
+                        <span class="terminal-icon" style="font-size: 48px;">⚡</span>
+                        <h2>webXTerm</h2>
+                    </div>
+                    <div class="about-info">
+                        <div class="about-item">
+                            <span class="about-label" data-i18n="about.version">Version</span>
+                            <span class="about-value">1.0.0</span>
+                        </div>
+                        <div class="about-item">
+                            <span class="about-label" data-i18n="about.author">Author</span>
+                            <span class="about-value">Nekhama</span>
+                        </div>
+                        <div class="about-item">
+                            <span class="about-label" data-i18n="about.github">GitHub</span>
+                            <a href="https://github.com/Nekhama/webxterm" target="_blank" rel="noopener noreferrer" class="about-link">
+                                https://github.com/Nekhama/webxterm
+                                <span style="margin-left: 4px;">↗</span>
+                            </a>
+                        </div>
+                        <div class="about-description" data-i18n="about.description">
+                            A modern web-based SSH/Telnet terminal management tool
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="about-modal-ok" class="btn btn-primary" data-i18n="buttons.close">Close</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Loading Scripts -->
+    <script src="/static/js/xterm.js"></script>
+    <script src="/static/js/xterm-addon-fit.min.js"></script>
+    <script src="/static/js/addon-web-links.min.js"></script>
+
+    <!-- Application Scripts -->
+    <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

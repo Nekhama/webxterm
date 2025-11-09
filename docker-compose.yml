@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  webxterm:
+    image: webxterm:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webxterm
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount data directory for persistent storage
+      - ./data:/app/data
+    environment:
+      # Logging (可选: debug, info, warning, error)
+      - LOG_LEVEL=info
+      
+      # Server settings
+      - HOST=0.0.0.0
+      - PORT=8080
+      - DEBUG=false
+      
+      # Database
+      - DATABASE_URL=sqlite:///./data/webxterm.db
+      
+      # Connection settings
+      - SSH_TIMEOUT=10
+      - TELNET_TIMEOUT=10
+      - MAX_CONNECTIONS_PER_CLIENT=10
+      
+      # Session settings
+      - SESSION_EXPIRE_SECONDS=3600
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s

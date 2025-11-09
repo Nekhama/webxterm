@@ -1,0 +1,79 @@
+# webXTerm Dockerfile - Alpine 超轻量版本
+# 使用 Alpine Linux 获得最小镜像
+
+# 阶段 1: 构建阶段
+FROM python:3.12-alpine AS builder
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install build dependencies (Alpine 使用 apk)
+# 仅在构建时需要，运行时不需要
+RUN apk add --no-cache --virtual .build-deps \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    openssl-dev \
+    cargo \
+    rust
+
+# Copy requirements
+COPY requirements.txt /tmp/requirements.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --prefix=/install -r /tmp/requirements.txt
+
+# 阶段 2: 运行阶段
+FROM python:3.12-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Install runtime dependencies only (不包含编译工具)
+RUN apk add --no-cache \
+    libffi \
+    openssl
+
+# Copy Python dependencies from builder
+COPY --from=builder /install /usr/local
+
+# Copy application code
+COPY app/ ./app/
+COPY frontend/ ./frontend/
+COPY start.py .
+COPY docker-entrypoint.sh /usr/local/bin/
+
+# Create data directory and clean up
+RUN mkdir -p /app/data && \
+    chmod -R 755 /app && \
+    chmod +x /usr/local/bin/docker-entrypoint.sh && \
+    find /usr/local -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
+    find /usr/local -type f -name '*.pyc' -delete 2>/dev/null || true && \
+    find /usr/local -type f -name '*.pyo' -delete 2>/dev/null || true
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
+
+# Environment variables
+# 可通过环境变量控制日志级别: debug, info, warning, error, critical
+ENV LOG_LEVEL=info \
+    HOST=0.0.0.0 \
+    PORT=8080
+
+# Use entrypoint for flexible startup
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+# Default command (can be overridden)
+CMD []
+
