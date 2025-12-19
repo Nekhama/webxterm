@@ -39,6 +39,18 @@ class ConnectionResetFilter(logging.Filter):
             return False
         return True
 
+
+class IgnoreHostKeyPolicy(paramiko.MissingHostKeyPolicy):
+    """完全忽略主机密钥验证的策略
+    
+    对于 Web 终端应用，用户可能需要连接到各种主机，
+    包括密钥已更改的主机（如 VM 重启后）。
+    此策略接受所有主机密钥，不进行任何验证。
+    """
+    def missing_host_key(self, client, hostname, key):
+        # 完全忽略，不做任何操作
+        logger.debug(f"接受主机 {hostname} 的密钥: {key.get_name()}")
+
 class FilteredStderr:
     """过滤特定错误信息的stderr替代"""
     def __init__(self, original_stderr):
@@ -162,17 +174,18 @@ class SSHProtocol(ConnectionProtocol):
             
             self.ssh_client = paramiko.SSHClient()
 
-            # Set host key policy - 强制使用AutoAddPolicy以支持未知主机
-            if settings.ALLOW_SYSTEM_HOST_KEYS:
-                try:
-                    self.ssh_client.load_system_host_keys()
-                except Exception as e:
-                    logger.debug(f"加载系统主机密钥失败: {str(e)}")
-
-            # 强制设置为自动添加策略，忽略配置中的VERIFY_HOST_KEYS设置
-            # 这对Web终端应用是必要的，因为用户需要能够连接到新的主机
-            self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            logger.debug("SSH主机密钥策略已设置为AutoAddPolicy")
+            # 使用完全忽略主机密钥的策略
+            # 这对 Web 终端应用是必要的，因为：
+            # 1. 用户需要能够连接到新的主机
+            # 2. VM 重启后主机密钥会变化
+            # 3. 多个 VM 可能使用相同的端口（端口转发）
+            
+            # 清空已知主机缓存，确保不会因为密钥不匹配而报错
+            # 这相当于 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+            self.ssh_client._host_keys = paramiko.HostKeys()
+            self.ssh_client._host_keys_filename = None
+            self.ssh_client.set_missing_host_key_policy(IgnoreHostKeyPolicy())
+            logger.debug("SSH主机密钥策略已设置为IgnoreHostKeyPolicy（完全忽略验证）")
 
             # 配置兼容的加密算法，类似 SSH 命令行选项
             # 相当于 -oKexAlgorithms=+diffie-hellman-group1-sha1 等选项

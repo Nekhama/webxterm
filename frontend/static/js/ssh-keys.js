@@ -9,11 +9,13 @@ export class SSHKeyManager extends EventEmitter {
     constructor() {
         super();
         this.keys = [];
+        // 支持子应用挂载：优先使用全局配置的 API 基础路径
+        this.apiBase = window.WEBXTERM_API_BASE || '/api';
     }
 
     async loadKeys() {
         try {
-            const response = await fetch('/api/ssh-keys');
+            const response = await fetch(`${this.apiBase}/ssh-keys`);
             if (!response.ok) {
                 throw new Error(`Failed to load SSH keys: ${response.statusText}`);
             }
@@ -28,7 +30,7 @@ export class SSHKeyManager extends EventEmitter {
 
     async createKey(keyData) {
         try {
-            const response = await fetch('/api/ssh-keys', {
+            const response = await fetch(`${this.apiBase}/ssh-keys`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -54,7 +56,7 @@ export class SSHKeyManager extends EventEmitter {
 
     async updateKey(keyId, keyData) {
         try {
-            const response = await fetch(`/api/ssh-keys/${keyId}`, {
+            const response = await fetch(`${this.apiBase}/ssh-keys/${keyId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -83,7 +85,7 @@ export class SSHKeyManager extends EventEmitter {
 
     async deleteKey(keyId) {
         try {
-            const response = await fetch(`/api/ssh-keys/${keyId}`, {
+            const response = await fetch(`${this.apiBase}/ssh-keys/${keyId}`, {
                 method: 'DELETE'
             });
 
@@ -103,7 +105,7 @@ export class SSHKeyManager extends EventEmitter {
 
     async getKeyWithSecret(keyId) {
         try {
-            const response = await fetch(`/api/ssh-keys/${keyId}/secret`);
+            const response = await fetch(`${this.apiBase}/ssh-keys/${keyId}/secret`);
             if (!response.ok) {
                 throw new Error('Failed to get SSH key');
             }

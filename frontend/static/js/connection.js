@@ -61,7 +61,9 @@ export class ConnectionManager {
             const i18n = window.app?.i18n;
             this.emit('connectionProgress', { step: 'initiating', message: i18n ? i18n.t('connection.initiating') : 'Initiating connection...' });
 
-            const response = await fetch('/api/connections/connect', {
+            // 支持子应用挂载：优先使用全局配置的 API 基础路径
+            const apiBase = window.WEBXTERM_API_BASE || '/api';
+            const response = await fetch(`${apiBase}/connections/connect`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -119,7 +121,9 @@ export class ConnectionManager {
     async connectWebSocket() {
         return new Promise((resolve, reject) => {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/api/connections/ws/${this.connectionId}`;
+            // 支持子应用挂载：优先使用全局配置的 API 基础路径
+            const apiBase = window.WEBXTERM_API_BASE || '/api';
+            const wsUrl = `${protocol}//${window.location.host}${apiBase}/connections/ws/${this.connectionId}`;
 
             this.websocket = new WebSocket(wsUrl);
 

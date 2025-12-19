@@ -54,12 +54,117 @@ class webXTermApp {
 
             // Load saved sessions
             await this.loadSessions();
+            
+            // 检查 URL 参数，支持从主应用传入连接参数
+            this.checkUrlParams();
 
             this.log('webXTerm initialized successfully');
 
         } catch (error) {
             console.error('Failed to initialize webXTerm:', error);
             this.uiManager.showError('Failed to initialize application');
+        }
+    }
+    
+    /**
+     * 检查 URL 参数并自动填充连接表单
+     * 支持参数: host, port, user, pwd (base64), autoconnect, fullscreen
+     */
+    checkUrlParams() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const host = urlParams.get('host');
+            const port = urlParams.get('port');
+            const user = urlParams.get('user');
+            const pwdBase64 = urlParams.get('pwd');  // Base64 编码的密码
+            const autoconnect = urlParams.get('autoconnect') === 'true';
+            const fullscreen = urlParams.get('fullscreen') === 'true';
+            const title = urlParams.get('title');
+            
+            // 保存全屏设置，连接成功后使用
+            this.pendingFullscreen = fullscreen;
+            
+            // 设置窗口标题
+            if (title) {
+                document.title = title;
+            }
+
+            if (!host) return;
+            
+            // 解码密码
+            let password = '';
+            if (pwdBase64) {
+                try {
+                    password = atob(pwdBase64);
+                } catch (e) {
+                    console.warn('密码解码失败:', e);
+                }
+            }
+            
+            this.log('URL 参数检测到连接信息:', { host, port, user, hasPassword: !!password, autoconnect });
+            
+            // 填充表单字段
+            const hostnameInput = document.getElementById('hostname');
+            const portInput = document.getElementById('port');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            
+            if (hostnameInput && host) {
+                hostnameInput.value = host;
+            }
+            if (portInput && port) {
+                portInput.value = port;
+            }
+            if (usernameInput && user) {
+                usernameInput.value = user;
+            }
+            if (passwordInput && password) {
+                passwordInput.value = password;
+            }
+            
+            // 清除 URL 参数（防止密码泄露和刷新后重复操作）
+            if (window.history.replaceState) {
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+            
+            // 如果有密码且设置了自动连接，直接连接
+            if (autoconnect && password) {
+                this.uiManager.showInfo(`正在自动连接: ${user || 'root'}@${host}:${port || 22}`);
+                // 延迟一点让 UI 初始化完成
+                setTimeout(() => {
+                    const connectBtn = document.getElementById('connect-btn');
+                    if (connectBtn) {
+                        connectBtn.click();
+                    }
+                }, 500);
+            } else if (autoconnect) {
+                // 没有密码，聚焦密码输入框
+                this.uiManager.showInfo(`已填充连接信息: ${user || 'root'}@${host}:${port || 22}`);
+                if (passwordInput) {
+                    passwordInput.focus();
+                    this.uiManager.showInfo('请输入密码后按回车连接');
+                    
+                    // 添加回车键监听，按回车自动连接
+                    const handleEnter = (e) => {
+                        if (e.key === 'Enter' && passwordInput.value) {
+                            e.preventDefault();
+                            passwordInput.removeEventListener('keydown', handleEnter);
+                            const connectBtn = document.getElementById('connect-btn');
+                            if (connectBtn) {
+                                connectBtn.click();
+                            }
+                        }
+                    };
+                    passwordInput.addEventListener('keydown', handleEnter);
+                }
+            } else {
+                // 只填充表单，不自动连接
+                this.uiManager.showInfo(`已填充连接信息: ${user || 'root'}@${host}:${port || 22}`);
+            }
+            
+        } catch (error) {
+            console.error('Error parsing URL params:', error);
         }
     }
 
@@ -350,6 +455,14 @@ class webXTermApp {
 
             // Focus terminal for input
             this.terminalManager.focus();
+            
+            // 如果设置了全屏模式，连接成功后进入全屏
+            if (this.pendingFullscreen) {
+                this.pendingFullscreen = false;
+                setTimeout(() => {
+                    this.enterFullscreen();
+                }, 300);
+            }
         });
 
         // Data event
@@ -548,6 +661,15 @@ class webXTermApp {
                 this.terminalManager.fit();
             }
         }, 100);
+    }
+    
+    /**
+     * 进入全屏模式（如果尚未处于全屏状态）
+     */
+    enterFullscreen() {
+        if (!this.uiManager.isFullscreen) {
+            this.toggleFullscreen();
+        }
     }
 
     // Language management

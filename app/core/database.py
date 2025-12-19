@@ -11,7 +11,7 @@ from typing import Optional, Dict, List, Any
 from datetime import datetime
 from contextlib import contextmanager
 
-from app.core.config import settings
+from .config import settings
 
 
 class DatabaseManager:

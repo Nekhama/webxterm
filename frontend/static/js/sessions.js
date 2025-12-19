@@ -8,7 +8,9 @@ export class SessionManager {
         this.sessions = [];
         this.groups = [];
         this.eventListeners = new Map();
-        this.apiBase = '/api/sessions';
+        // 支持子应用挂载：优先使用全局配置的 API 基础路径
+        const apiPrefix = window.WEBXTERM_API_BASE || '/api';
+        this.apiBase = `${apiPrefix}/sessions`;
     }
 
     async init() {
