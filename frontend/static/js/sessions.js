@@ -10,7 +10,13 @@ export class SessionManager {
         this.eventListeners = new Map();
         // 支持子应用挂载：优先使用全局配置的 API 基础路径
         const apiPrefix = window.WEBXTERM_API_BASE || '/api';
-        this.apiBase = `${apiPrefix}/sessions`;
+        // 带尾部斜杠的基础路径，避免 307 重定向延迟
+        this.apiBase = `${apiPrefix}/sessions/`;
+    }
+    
+    // 获取单个资源的 URL（移除尾部斜杠后拼接 ID）
+    _getItemUrl(itemId) {
+        return `${this.apiBase.replace(/\/$/, '')}/${itemId}`;
     }
 
     async init() {
@@ -72,7 +78,7 @@ export class SessionManager {
 
     async updateSession(sessionId, updates) {
         try {
-            const response = await fetch(`${this.apiBase}/${sessionId}`, {
+            const response = await fetch(this._getItemUrl(sessionId), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -105,7 +111,7 @@ export class SessionManager {
 
     async deleteSession(sessionId) {
         try {
-            const response = await fetch(`${this.apiBase}/${sessionId}`, {
+            const response = await fetch(this._getItemUrl(sessionId), {
                 method: 'DELETE'
             });
 
@@ -128,7 +134,7 @@ export class SessionManager {
 
     async useSession(sessionId) {
         try {
-            const response = await fetch(`${this.apiBase}/${sessionId}/use`, {
+            const response = await fetch(`${this._getItemUrl(sessionId)}/use`, {
                 method: 'POST'
             });
 
@@ -155,7 +161,7 @@ export class SessionManager {
 
     async getSession(sessionId) {
         try {
-            const response = await fetch(`${this.apiBase}/${sessionId}`);
+            const response = await fetch(this._getItemUrl(sessionId));
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || 'Failed to get session');
@@ -170,7 +176,7 @@ export class SessionManager {
 
     async exportSessions(groupName = null) {
         try {
-            const url = new URL(`${this.apiBase}/export`, window.location.origin);
+            const url = new URL(`${this.apiBase}export`, window.location.origin);
             if (groupName) {
                 url.searchParams.set('group_name', groupName);
             }

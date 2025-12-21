@@ -6,10 +6,11 @@
 import { SSHKeyManager } from './ssh-keys.js';
 
 export class SSHKeyUI {
-    constructor(i18n) {
+    constructor(i18n, options = {}) {
         this.i18n = i18n;
         this.keyManager = new SSHKeyManager();
         this.currentEditingKeyId = null;
+        this.deferLoading = options.deferLoading || false;
         this.initElements();
         this.initEventListeners();
     }
@@ -119,9 +120,20 @@ export class SSHKeyUI {
         this.keyManager.on('keyUpdated', () => this.handleKeyUpdated());
         this.keyManager.on('keyDeleted', () => this.handleKeyDeleted());
 
-        // Load keys initially to populate selectors
+        // Load keys initially to populate selectors (unless deferred)
+        if (!this.deferLoading) {
+            this.keyManager.loadKeys().catch(err => {
+                console.error('Failed to load SSH keys for selectors:', err);
+            });
+        }
+    }
+    
+    /**
+     * 延迟加载 SSH 密钥（用于自动连接模式后台加载）
+     */
+    loadKeysDeferred() {
         this.keyManager.loadKeys().catch(err => {
-            console.error('Failed to load SSH keys for selectors:', err);
+            console.error('Failed to load SSH keys (deferred):', err);
         });
     }
 

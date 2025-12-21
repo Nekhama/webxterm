@@ -43,8 +43,18 @@ class webXTermApp {
         try {
             this.log('Initializing webXTerm (Single Session Mode)...');
 
-            // Initialize components
-            await this.initializeComponents();
+            // 检查是否有 autoconnect 参数，如果有则跳过同步加载会话列表
+            const urlParams = new URLSearchParams(window.location.search);
+            const isAutoConnect = urlParams.get('autoconnect') === 'true' && urlParams.get('host');
+
+            // Initialize components (会调用 sessionManager.init())
+            // 如果是自动连接模式，不等待会话列表加载
+            if (isAutoConnect) {
+                this.log('Auto-connect mode detected, using fast initialization...');
+                this.initializeComponentsForAutoConnect();
+            } else {
+                await this.initializeComponents();
+            }
 
             // Initialize terminal
             this.initializeSingleSessionTerminal();
@@ -52,11 +62,24 @@ class webXTermApp {
             // Set up event listeners
             this.setupEventListeners();
 
-            // Load saved sessions
-            await this.loadSessions();
-            
             // 检查 URL 参数，支持从主应用传入连接参数
-            this.checkUrlParams();
+            // 如果是自动连接模式，先处理 URL 参数（开始连接）
+            if (isAutoConnect) {
+                this.checkUrlParams();
+                // 延迟 1 秒后再后台加载会话列表和SSH密钥，确保连接优先
+                setTimeout(() => {
+                    this.loadSessions().catch(err => {
+                        console.warn('Background session loading failed:', err);
+                    });
+                    if (this.sshKeyUI) {
+                        this.sshKeyUI.loadKeysDeferred();
+                    }
+                }, 1000);
+            } else {
+                // Load saved sessions (同步加载)
+                await this.loadSessions();
+                this.checkUrlParams();
+            }
 
             this.log('webXTerm initialized successfully');
 
@@ -64,6 +87,28 @@ class webXTermApp {
             console.error('Failed to initialize webXTerm:', error);
             this.uiManager.showError('Failed to initialize application');
         }
+    }
+    
+    /**
+     * 自动连接模式的初始化（不等待会话列表和SSH密钥加载）
+     */
+    initializeComponentsForAutoConnect() {
+        // Make app available globally for UI components
+        window.app = this;
+
+        // Initialize language system
+        this.initializeLanguage();
+
+        // Initialize UI manager
+        this.uiManager.init();
+
+        // 不调用 sessionManager.init()，延迟加载会话列表
+
+        // Initialize SSH Key UI (延迟加载SSH密钥)
+        this.sshKeyUI = new SSHKeyUI(this.i18n, { deferLoading: true });
+
+        // Set up component communication
+        this.setupComponentCommunication();
     }
     
     /**
@@ -131,13 +176,13 @@ class webXTermApp {
             // 如果有密码且设置了自动连接，直接连接
             if (autoconnect && password) {
                 this.uiManager.showInfo(`正在自动连接: ${user || 'root'}@${host}:${port || 22}`);
-                // 延迟一点让 UI 初始化完成
-                setTimeout(() => {
+                // 使用 requestAnimationFrame 确保 DOM 更新后立即连接
+                requestAnimationFrame(() => {
                     const connectBtn = document.getElementById('connect-btn');
                     if (connectBtn) {
                         connectBtn.click();
                     }
-                }, 500);
+                });
             } else if (autoconnect) {
                 // 没有密码，聚焦密码输入框
                 this.uiManager.showInfo(`已填充连接信息: ${user || 'root'}@${host}:${port || 22}`);
