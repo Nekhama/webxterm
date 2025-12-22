@@ -22,18 +22,6 @@ router = APIRouter()
 connection_manager = ConnectionManager()
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)  # 强制设置DEBUG级别
-
-# 确保handler也设置为DEBUG级别
-if not logger.handlers:
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-else:
-    for handler in logger.handlers:
-        handler.setLevel(logging.DEBUG)
 
 
 @router.post("/connect")
@@ -95,7 +83,6 @@ async def websocket_endpoint(websocket: WebSocket, connection_id: str):
     WebSocket endpoint for terminal communication
     """
     await websocket.accept()
-    logger.error(f"🔥 WEBSOCKET连接开始测试 {connection_id}")  # 强制ERROR级别测试
     logger.debug(f"[WEBSOCKET] WebSocket连接开始 {connection_id}")
 
     try:
@@ -201,7 +188,6 @@ async def websocket_endpoint(websocket: WebSocket, connection_id: str):
         logger.error(f"WebSocket error: {str(e)}")
     finally:
         # Clean up connection - this will properly close the underlying Telnet/SSH connection
-        logger.error(f"🔥 CLEANUP测试开始 {connection_id}")  # 强制ERROR级别测试
         logger.debug(f"[WEBSOCKET] 进入finally块 {connection_id}")
         logger.debug(f"[CLEANUP] 开始清理连接 {connection_id}")
         logger.debug(f"[CLEANUP] WebSocket状态: {websocket.client_state.name}")
