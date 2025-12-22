@@ -1,5 +1,15 @@
 # webXTerm 变更日志
 
+## 2025-12-22
+
+### 性能优化
+
+#### API 缓存控制
+- 添加 HTTP 中间件为 `/api/` 路径设置缓存控制头
+- `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
+- `Pragma: no-cache`
+- 防止浏览器缓存导致 API 延迟
+
 ## 2025-12-21
 
 ### 性能优化

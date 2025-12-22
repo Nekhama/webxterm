@@ -3,7 +3,7 @@ webXTerm Main Application
 FastAPI-based web terminal with SSH and Telnet support
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,6 +30,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# API 缓存控制中间件 - 防止浏览器缓存导致 API 延迟
+@app.middleware("http")
+async def add_cache_control(request: Request, call_next):
+    """为 API 路径添加缓存控制头"""
+    response = await call_next(request)
+    
+    # 为 /api/ 路径添加缓存控制头，防止浏览器缓存导致延迟
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+    
+    return response
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
