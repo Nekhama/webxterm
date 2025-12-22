@@ -120,6 +120,7 @@ export const zh_TW = {
         saved: '已儲存的會話',
         active: '活躍會話',
         noSessions: '沒有可用會話',
+        noSavedSessions: '暫無已儲存的會話',
         noActiveSessionToDisconnect: '沒有活躍會話需要中斷',
         sessionInfo: '會話資訊',
         connectionTime: '本次會話時長',

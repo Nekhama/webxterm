@@ -688,8 +688,9 @@ export class UIManager {
 
         if (sessions.length === 0) {
             console.log('UI: No sessions, showing empty message');
+            const noSessionsText = window.app?.i18n?.t('sessions.noSavedSessions') || 'No saved sessions';
             this.elements.sessionsList.innerHTML = `
-                <div class="loading">No saved sessions</div>
+                <div class="loading">${noSessionsText}</div>
             `;
             return;
         }

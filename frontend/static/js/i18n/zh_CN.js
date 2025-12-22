@@ -120,6 +120,7 @@ export const zh_CN = {
         saved: '已保存的会话',
         active: '活跃会话',
         noSessions: '没有可用会话',
+        noSavedSessions: '暂无已保存的会话',
         noActiveSessionToDisconnect: '没有活动会话需要断开',
         sessionInfo: '会话信息',
         connectionTime: '本次会话时长',

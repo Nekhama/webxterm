@@ -120,6 +120,7 @@ export const en = {
         saved: 'Saved Sessions',
         active: 'Active Sessions',
         noSessions: 'No sessions available',
+        noSavedSessions: 'No saved sessions',
         noActiveSessionToDisconnect: 'No active session to disconnect',
         sessionInfo: 'Session Information',
         connectionTime: 'Connected for',
