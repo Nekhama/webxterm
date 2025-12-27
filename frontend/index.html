@@ -12,9 +12,10 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/css/main.css">
 
-    <!-- Dark Theme CSS Variables (Fixed) -->
+    <!-- Theme CSS Variables -->
     <style>
-        :root {
+        /* Dark Theme (default) */
+        :root, body[data-theme="dark"] {
             --primary-bg: #1e1e1e;
             --secondary-bg: #2d2d2d;
             --sidebar-bg: #252526;
@@ -25,6 +26,20 @@
             --accent-green: #16825d;
             --accent-red: #f14c4c;
             --accent-orange: #ff8c00;
+        }
+        
+        /* Light Theme */
+        body[data-theme="light"] {
+            --primary-bg: #ffffff;
+            --secondary-bg: #f5f5f5;
+            --sidebar-bg: #f0f0f0;
+            --border-color: #e0e0e0;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --accent-blue: #0066cc;
+            --accent-green: #107c10;
+            --accent-red: #cd3131;
+            --accent-orange: #e67700;
         }
     </style>
 </head>
@@ -59,6 +74,9 @@
                     </div>
                 </div>
             </div>
+            <button id="theme-toggle" class="icon-btn" data-i18n-title="tooltips.theme">
+                <span class="theme-icon">🌓</span>
+            </button>
         </div>
 
         <!-- Sidebar for session management -->

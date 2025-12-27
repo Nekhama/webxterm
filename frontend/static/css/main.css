@@ -830,6 +830,11 @@ html, body {
     overflow: hidden;
 }
 
+/* 🔧 Integrated mode fix: main-content should only span 1 row */
+.webxterm-container .main-content {
+    grid-row: 1 !important;
+}
+
 /* Status bar */
 .status-bar {
     background-color: var(--secondary-bg);
@@ -901,12 +906,20 @@ html, body {
     flex: 1;
     position: relative;
     background-color: var(--primary-bg);
+    display: flex;
+    flex-direction: column;
 }
 
+/* Terminal area */
+.terminal-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
 
 .terminal {
+    flex: 1;
     width: 100%;
-    height: 100%;
 }
 
 .terminal-overlay {
@@ -1416,6 +1429,9 @@ body.terminal-fullscreen .logo-header {
         margin-left: auto; /* 推到右边 */
     }
 
+    #theme-toggle {
+        order: 3;
+    }
 
     #mobile-sidebar-toggle:hover {
         background-color: rgba(255, 255, 255, 0.15);

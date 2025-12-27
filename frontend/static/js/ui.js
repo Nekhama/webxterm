@@ -116,7 +116,13 @@ export class UIManager {
     }
 
     setupEventListeners() {
-        // Theme toggle removed - dark theme only
+        // Theme toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                this.emit('themeToggle');
+            });
+        }
 
         // Connection type change
         this.elements.connectionType?.addEventListener('change', (e) => {

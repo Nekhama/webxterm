@@ -269,7 +269,9 @@ class webXTermApp {
             this.disconnect();
         });
 
-        // Theme toggle removed - dark theme only
+        this.uiManager.on('themeToggle', () => {
+            this.toggleTheme();
+        });
 
         this.uiManager.on('fullscreenToggle', () => {
             this.toggleFullscreen();
@@ -304,34 +306,36 @@ class webXTermApp {
         // Mobile sidebar toggle
         this.setupMobileSidebarToggle();
 
-        // Language selector
-        const langToggle = document.getElementById('lang-toggle');
-        const langDropdown = document.getElementById('lang-dropdown');
-        const langSelector = document.querySelector('.language-selector');
+        // Language selector - 集成模式下跳过，使用主应用的语言选择器
+        if (!window.__WEBXTERM_INTEGRATED_MODE__) {
+            const langToggle = document.getElementById('lang-toggle');
+            const langDropdown = document.getElementById('lang-dropdown');
+            const langSelector = document.querySelector('.language-selector');
 
-        if (langToggle && langDropdown) {
-            // Toggle dropdown
-            langToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.toggleLanguageDropdown();
-            });
+            if (langToggle && langDropdown) {
+                // Toggle dropdown
+                langToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleLanguageDropdown();
+                });
 
-            // Select language option
-            langDropdown.addEventListener('click', (e) => {
-                const langOption = e.target.closest('.lang-option');
-                if (langOption) {
-                    const selectedLang = langOption.dataset.lang;
-                    this.setLanguage(selectedLang);
-                    this.hideLanguageDropdown();
-                }
-            });
+                // Select language option
+                langDropdown.addEventListener('click', (e) => {
+                    const langOption = e.target.closest('.lang-option');
+                    if (langOption) {
+                        const selectedLang = langOption.dataset.lang;
+                        this.setLanguage(selectedLang);
+                        this.hideLanguageDropdown();
+                    }
+                });
 
-            // Close dropdown when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!langSelector.contains(e.target)) {
-                    this.hideLanguageDropdown();
-                }
-            });
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!langSelector.contains(e.target)) {
+                        this.hideLanguageDropdown();
+                    }
+                });
+            }
         }
 
         // Disconnect current session button
@@ -500,6 +504,16 @@ class webXTermApp {
 
             // Focus terminal for input
             this.terminalManager.focus();
+            
+            // 集成模式下，连接成功后同步主题
+            if (window.__WEBXTERM_INTEGRATED_MODE__) {
+                const currentTheme = document.body.classList.contains('dark-theme') ? 'dark' : 'light';
+                console.log('🎨 [Integrated] Connection established, syncing theme:', currentTheme);
+                // 延迟一点确保终端完全初始化
+                setTimeout(() => {
+                    this.terminalManager.setTheme(currentTheme);
+                }, 100);
+            }
             
             // 如果设置了全屏模式，连接成功后进入全屏
             if (this.pendingFullscreen) {
@@ -695,7 +709,41 @@ class webXTermApp {
         }
     }
 
-    // Theme toggle removed - dark theme only
+    toggleTheme() {
+        // 集成模式下，主题由父应用（xdesktop）管理，不应该修改 body
+        if (window.__WEBXTERM_INTEGRATED_MODE__) {
+            this.log('⚠️ Integrated mode: theme toggle should be handled by parent app');
+            return;
+        }
+
+        // 独立模式：可以修改 body 的 data-theme
+        const body = document.body;
+        const currentTheme = body.getAttribute('data-theme') || 'dark';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+        body.setAttribute('data-theme', newTheme);
+        localStorage.setItem('webxterm-theme', newTheme);
+
+        // Update terminal theme
+        if (this.terminalManager) {
+            this.terminalManager.setTheme(newTheme);
+        }
+
+        // Update theme toggle icon
+        this.updateThemeIcon(newTheme);
+
+        this.log('Theme changed to:', newTheme);
+    }
+
+    updateThemeIcon(theme) {
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            const icon = themeToggle.querySelector('.theme-icon');
+            if (icon) {
+                icon.textContent = theme === 'dark' ? '🌓' : '☀️';
+            }
+        }
+    }
 
     toggleFullscreen() {
         this.uiManager.toggleFullscreen();
@@ -722,8 +770,15 @@ class webXTermApp {
         // Supported languages
         this.supportedLanguages = ['en', 'zh_CN', 'zh_TW'];
 
-        // Get saved language or detect from browser
-        const savedLang = localStorage.getItem('webxterm-language');
+        // 在集成模式下，优先使用主应用的语言设置 (key: 'language')
+        // 独立模式下，使用 webxterm 自己的语言设置 (key: 'webxterm-language')
+        let savedLang = null;
+        if (window.__WEBXTERM_INTEGRATED_MODE__) {
+            savedLang = localStorage.getItem('language');
+        }
+        if (!savedLang) {
+            savedLang = localStorage.getItem('webxterm-language');
+        }
         let currentLang = savedLang;
 
         if (!currentLang) {
@@ -761,7 +816,11 @@ class webXTermApp {
 
         this.currentLanguage = lang;
         document.documentElement.setAttribute('data-lang', lang);
+        
+        // 同时保存到两个键，保持兼容性
         localStorage.setItem('webxterm-language', lang);
+        // 在集成模式下，不设置主应用的 'language' 键，让主应用自己管理
+        // 这样避免 webxterm 覆盖主应用的语言设置
 
         // Update i18n system
         this.i18n.setLanguage(lang);
@@ -859,6 +918,41 @@ class webXTermApp {
     }
 
     /**
+     * 销毁应用，清理所有资源
+     */
+    destroy() {
+        console.log('🧹 webXTerm 应用销毁，清理资源');
+
+        // 断开连接
+        if (this.currentConnection && this.currentConnection.isConnected) {
+            try {
+                this.currentConnection.disconnect();
+            } catch (error) {
+                console.warn('⚠️ 断开连接失败:', error);
+            }
+        }
+
+        // 清理 terminalManager
+        if (this.terminalManager) {
+            try {
+                this.terminalManager.dispose();
+            } catch (error) {
+                console.warn('⚠️ terminalManager dispose 失败:', error);
+            }
+            this.terminalManager = null;
+        }
+
+        // 清理其他管理器
+        this.sessionManager = null;
+        this.uiManager = null;
+        this.currentConnection = null;
+        this.currentSession = null;
+        this.sshKeyUI = null;
+
+        console.log('✅ webXTerm 资源清理完成');
+    }
+
+    /**
      * 设置移动端侧边栏切换功能
      */
     setupMobileSidebarToggle() {
@@ -939,17 +1033,53 @@ class webXTermApp {
     }
 }
 
-// Initialize application when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    // Load saved theme
-    const savedTheme = localStorage.getItem('webxterm-theme') || 'dark';
-    document.body.setAttribute('data-theme', savedTheme);
+/**
+ * 初始化 webXTerm 应用（供集成模式和独立模式共用）
+ * @param {Object} options 初始化选项
+ * @param {boolean} options.skipTheme 是否跳过主题初始化（集成模式通常为 true）
+ * @returns {webXTermApp} 应用实例
+ */
+function initWebXTermApplication(options = {}) {
+    const { skipTheme = false } = options;
+    
+    console.log('🚀 webXTerm: 开始初始化...');
+    
+    // Load saved theme (独立模式)
+    if (!skipTheme) {
+        const savedTheme = localStorage.getItem('webxterm-theme') || 'dark';
+        document.body.setAttribute('data-theme', savedTheme);
+        
+        // Update theme toggle icon
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            const icon = themeToggle.querySelector('.theme-icon');
+            if (icon) {
+                icon.textContent = savedTheme === 'dark' ? '🌓' : '☀️';
+            }
+        }
+    }
 
     // Initialize quick connect toggle
     initQuickConnectToggle();
 
     // Create application instance
-    window.webxterm = new webXTermApp();
+    const app = new webXTermApp();
+    window.webxterm = app;
+    
+    console.log('✅ webXTerm: 初始化完成');
+    return app;
+}
+
+// Initialize application when DOM is loaded (独立模式)
+document.addEventListener('DOMContentLoaded', () => {
+    // 检查是否在集成模式下运行（由主应用设置）
+    if (window.__WEBXTERM_INTEGRATED_MODE__) {
+        console.log('📦 webXTerm: 集成模式，跳过自动初始化（等待主应用调用 initWebXTermApplication）');
+        return;
+    }
+    
+    // 独立模式自动初始化
+    initWebXTermApplication({ skipTheme: false });
 });
 
 // Quick Connect Toggle functionality
@@ -972,5 +1102,5 @@ function initQuickConnectToggle() {
     });
 }
 
-// Export for debugging
-export { webXTermApp };
+// Export for debugging and integration
+export { webXTermApp, initQuickConnectToggle, initWebXTermApplication };

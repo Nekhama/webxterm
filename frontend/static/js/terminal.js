@@ -12,13 +12,14 @@ export class TerminalManager {
         this.eventListeners = new Map();
         this.connectionType = connectionType;
         this.dataBuffer = []; // Buffer for data received before terminal is ready
+        this.resizeHandler = null; // 保存 resize 监听器引用，用于清理
         
         this.themes = {
             dark: {
                 background: '#1e1e1e',
                 foreground: '#cccccc',
-                cursor: '#cccccc',
-                cursorAccent: '#1e1e1e',
+                cursor: '#ffffff',
+                cursorAccent: '#000000',
                 selection: '#ffffff40',
                 black: '#000000',
                 red: '#f14c4c',
@@ -36,6 +37,29 @@ export class TerminalManager {
                 brightMagenta: '#bc05bc',
                 brightCyan: '#0598bc',
                 brightWhite: '#ffffff'
+            },
+            light: {
+                background: '#eeeeee',
+                foreground: '#333333',
+                cursor: '#333333',
+                cursorAccent: '#eeeeee',
+                selection: '#00000040',
+                black: '#000000',
+                red: '#cd3131',
+                green: '#107c10',
+                yellow: '#b5a000',
+                blue: '#0066cc',
+                magenta: '#9b4993',
+                cyan: '#0598bc',
+                white: '#767676',
+                brightBlack: '#444444',
+                brightRed: '#cd3131',
+                brightGreen: '#107c10',
+                brightYellow: '#b5a000',
+                brightBlue: '#0066cc',
+                brightMagenta: '#9b4993',
+                brightCyan: '#0598bc',
+                brightWhite: '#333333'
             }
         };
     }
@@ -51,8 +75,16 @@ export class TerminalManager {
     }
 
     createTerminal() {
-        // Get current theme
-        const currentTheme = document.body.getAttribute('data-theme') || 'dark';
+        // Get current theme - 支持集成模式和独立模式
+        let currentTheme = 'dark';
+        if (window.__WEBXTERM_INTEGRATED_MODE__) {
+            // 集成模式：从主应用的 body class 判断
+            currentTheme = document.body.classList.contains('dark-theme') ? 'dark' : 'light';
+        } else {
+            // 独立模式：从 data-theme 属性获取
+            currentTheme = document.body.getAttribute('data-theme') || 'dark';
+        }
+        console.log('[Terminal] Creating terminal with theme:', currentTheme);
 
         // Terminal options
         const options = {
@@ -75,7 +107,7 @@ export class TerminalManager {
             rightClickSelectsWord: true,
             scrollback: 10000,
             scrollSensitivity: 1,
-            theme: this.themes[currentTheme],
+            theme: JSON.parse(JSON.stringify(this.themes[currentTheme])),
             allowTransparency: false,
             altClickMovesCursor: true,
             convertEol: false,
@@ -145,10 +177,11 @@ export class TerminalManager {
             this.emit('titleChange', title);
         });
 
-        // Window resize handler
-        window.addEventListener('resize', () => {
+        // Window resize handler - 使用命名函数以便清理
+        this.resizeHandler = () => {
             this.fit();
-        });
+        };
+        window.addEventListener('resize', this.resizeHandler);
 
         // Context menu handler
         this.container.addEventListener('contextmenu', (e) => {
@@ -160,6 +193,18 @@ export class TerminalManager {
     fit() {
         if (this.fitAddon && this.terminal) {
             try {
+                // 🔧 修复：检查容器是否可见和有尺寸
+                if (!this.container || !this.container.offsetParent) {
+                    console.debug('[Terminal] Container not visible, skipping fit');
+                    return;
+                }
+
+                const containerRect = this.container.getBoundingClientRect();
+                if (containerRect.width === 0 || containerRect.height === 0) {
+                    console.debug('[Terminal] Container has zero dimensions, skipping fit');
+                    return;
+                }
+
                 this.fitAddon.fit();
                 const dimensions = this.fitAddon.proposeDimensions();
                 if (dimensions) {
@@ -168,17 +213,23 @@ export class TerminalManager {
 
                     // Check if we're in fullscreen mode
                     const isFullscreen = document.body.classList.contains('terminal-fullscreen');
+                    // Check if we're in integrated mode (xdesktop)
+                    const isIntegratedMode = window.__WEBXTERM_INTEGRATED_MODE__ === true;
 
                     if (isFullscreen) {
                         // Fullscreen mode: no reduction needed
                         rowsToReduce = 0;
-                    } else {
-                        // Normal mode: reduce by 1 row
+                    } else if (isIntegratedMode) {
+                        // Integrated mode (xdesktop): reduce by 1 row to prevent cursor overlap
                         rowsToReduce = 1;
+                    } else {
+                        // Standalone mode: reduce by 2 rows to prevent cursor from being hidden
+                        rowsToReduce = 2;
                     }
 
                     const adjustedRows = Math.max(1, dimensions.rows - rowsToReduce);
-                    console.log(`Terminal fitted to ${dimensions.cols}x${adjustedRows} (original: ${dimensions.cols}x${dimensions.rows}, mode: ${isFullscreen ? 'fullscreen' : 'normal'})`);
+                    const modeStr = isFullscreen ? 'fullscreen' : (isIntegratedMode ? 'integrated' : 'standalone');
+                    console.log(`Terminal fitted to ${dimensions.cols}x${adjustedRows} (original: ${dimensions.cols}x${dimensions.rows}, mode: ${modeStr})`);
 
                     // Manually resize terminal to adjusted dimensions
                     this.terminal.resize(dimensions.cols, adjustedRows);
@@ -238,9 +289,80 @@ export class TerminalManager {
     }
 
     setTheme(themeName) {
-        if (this.terminal && this.themes[themeName]) {
-            this.terminal.setOption('theme', this.themes[themeName]);
+        if (!this.terminal || !this.themes[themeName]) {
+            console.warn(`[Terminal] Cannot set theme: terminal=${!!this.terminal}, theme=${themeName}, themes=${Object.keys(this.themes).join(',')}`);
+            return;
         }
+
+        // 使用深拷贝避免修改原始主题对象
+        const theme = JSON.parse(JSON.stringify(this.themes[themeName]));
+        console.log(`[Terminal] Applying theme: ${themeName}, bg=${theme.background}, fg=${theme.foreground}`);
+        
+        // 方法1: 直接修改 options.theme（xterm.js 5.x）
+        if (!this.terminal.options.theme) {
+            this.terminal.options.theme = {};
+        }
+        // 复制所有主题属性
+        Object.keys(theme).forEach(key => {
+            this.terminal.options.theme[key] = theme[key];
+        });
+        console.log(`[Terminal] Method 1: options.theme updated`);
+        
+        // 方法2: 直接修改 DOM 元素的背景色和前景色
+        if (this.container) {
+            const xtermElements = {
+                '.xterm-viewport': this.container.querySelector('.xterm-viewport'),
+                '.xterm-screen': this.container.querySelector('.xterm-screen'),
+                '.xterm-scroll-area': this.container.querySelector('.xterm-scroll-area'),
+                '.terminal': this.container.querySelector('.terminal')
+            };
+            
+            let elementsUpdated = 0;
+            Object.entries(xtermElements).forEach(([selector, el]) => {
+                if (el) {
+                    el.style.backgroundColor = theme.background;
+                    el.style.color = theme.foreground;
+                    elementsUpdated++;
+                }
+            });
+            
+            // 特别处理：修改 .xterm-rows 的文字颜色
+            const xtermRows = this.container.querySelector('.xterm-rows');
+            if (xtermRows) {
+                xtermRows.style.color = theme.foreground;
+                elementsUpdated++;
+            }
+            console.log(`[Terminal] Method 2: ${elementsUpdated} DOM elements updated`);
+        } else {
+            console.warn(`[Terminal] Container not found for DOM update`);
+        }
+        
+        // 方法3: 强制刷新终端以应用颜色
+        if (typeof this.terminal.refresh === 'function') {
+            this.terminal.refresh(0, this.terminal.rows - 1);
+            console.log(`[Terminal] Method 3: terminal refreshed`);
+        }
+        
+        // 方法4: 直接更新光标颜色（xterm.js 的光标需要手动更新 DOM）
+        if (this.container) {
+            const updateCursor = () => {
+                const cursor = this.container.querySelector('.xterm-cursor');
+                if (cursor) {
+                    cursor.style.backgroundColor = theme.cursor;
+                    cursor.style.borderColor = theme.cursor;
+                    console.log(`[Terminal] Method 4: cursor color updated to ${theme.cursor}`);
+                }
+            };
+
+            // 立即更新
+            updateCursor();
+
+            // 延迟更新（确保光标已渲染）
+            setTimeout(updateCursor, 50);
+            setTimeout(updateCursor, 200);
+        }
+
+        console.log(`[Terminal] Theme set to: ${themeName}`);
     }
 
     setFontSize(size) {
@@ -385,6 +507,13 @@ export class TerminalManager {
     dispose() {
         const containerId = this.container?.id || 'unknown';
         console.log(`🗑️ [Terminal ${containerId}] 开始清理`);
+
+        // 移除 window resize 监听器
+        if (this.resizeHandler) {
+            window.removeEventListener('resize', this.resizeHandler);
+            this.resizeHandler = null;
+            console.log(`✅ [Terminal ${containerId}] resize 监听器已移除`);
+        }
 
         if (this.terminal) {
             try {

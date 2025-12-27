@@ -85,12 +85,26 @@ class I18nManager {
 
     /**
      * Update all elements with i18n attributes
+     * In integrated mode, only updates elements within webXTerm container
      */
     updateAllTexts() {
+        // 在集成模式下，只更新 webXTerm 容器内的元素，避免影响主应用
+        let root = document;
+        if (window.__WEBXTERM_INTEGRATED_MODE__) {
+            const container = document.querySelector('.webxterm-container');
+            if (container) {
+                root = container;
+            }
+        }
+        
         // Update elements with data-i18n attribute
-        const elements = document.querySelectorAll('[data-i18n]');
+        const elements = root.querySelectorAll('[data-i18n]');
         elements.forEach(element => {
             const keyPath = element.getAttribute('data-i18n');
+            // 检查翻译键是否存在，避免警告
+            if (!this.hasTranslation(keyPath)) {
+                return; // 跳过不存在的翻译键
+            }
             const variables = this.parseVariables(element.getAttribute('data-i18n-vars'));
 
             if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
@@ -107,20 +121,46 @@ class I18nManager {
         });
 
         // Update elements with data-i18n-title attribute (tooltips)
-        const titleElements = document.querySelectorAll('[data-i18n-title]');
+        const titleElements = root.querySelectorAll('[data-i18n-title]');
         titleElements.forEach(element => {
             const keyPath = element.getAttribute('data-i18n-title');
+            if (!this.hasTranslation(keyPath)) {
+                return;
+            }
             const variables = this.parseVariables(element.getAttribute('data-i18n-title-vars'));
             element.title = this.t(keyPath, variables);
         });
 
         // Update elements with data-i18n-placeholder attribute
-        const placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
+        const placeholderElements = root.querySelectorAll('[data-i18n-placeholder]');
         placeholderElements.forEach(element => {
             const keyPath = element.getAttribute('data-i18n-placeholder');
+            if (!this.hasTranslation(keyPath)) {
+                return;
+            }
             const variables = this.parseVariables(element.getAttribute('data-i18n-placeholder-vars'));
             element.placeholder = this.t(keyPath, variables);
         });
+    }
+    
+    /**
+     * Check if a translation key exists (without logging warning)
+     * @param {string} keyPath Dot-separated key path
+     * @returns {boolean} Whether the key exists
+     */
+    hasTranslation(keyPath) {
+        const keys = keyPath.split('.');
+        let value = this.currentPack;
+
+        for (const key of keys) {
+            if (value && typeof value === 'object' && key in value) {
+                value = value[key];
+            } else {
+                return false;
+            }
+        }
+
+        return typeof value === 'string';
     }
 
     /**
