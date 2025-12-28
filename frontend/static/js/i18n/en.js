@@ -54,7 +54,7 @@ export const en = {
         encodingUtf8: 'UTF-8',
         encodingGbk: 'GBK/GB2312',
         search: 'Search',
-        searchPlaceholder: 'Search sessions...',
+        searchPlaceholder: 'input keyword',
         moreOptions: 'More Options',
         privateKey: 'Private Key',
         privateKeyPlaceholder: '-----BEGIN PRIVATE KEY-----',
@@ -117,7 +117,7 @@ export const en = {
     // Session management
     sessions: {
         title: 'Sessions',
-        saved: 'Saved Sessions',
+        saved: 'Saved List',
         active: 'Active Sessions',
         noSessions: 'No sessions available',
         noSavedSessions: 'No saved sessions',

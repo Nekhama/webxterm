@@ -1,6 +1,11 @@
 # webXTerm 变更日志
 
-## 2025-12-27
+## 2025-12-28
+
+#### 更新优化
+
+- 使用 ScopedDOM 避免 ID 冲突
+- 更新 requirements.txt
 
 #### 主题同步
 

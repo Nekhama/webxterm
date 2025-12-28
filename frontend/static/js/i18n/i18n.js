@@ -8,7 +8,7 @@ import { zh_CN } from './zh_CN.js';
 import { zh_TW } from './zh_TW.js';
 
 class I18nManager {
-    constructor() {
+    constructor(container = null) {
         this.languages = {
             'en': en,
             'zh_CN': zh_CN,
@@ -20,6 +20,9 @@ class I18nManager {
 
         // Callbacks for language change events
         this.changeCallbacks = [];
+
+        // 🆕 存储容器引用（解决多实例冲突）
+        this.container = container;
     }
 
     /**
@@ -88,9 +91,12 @@ class I18nManager {
      * In integrated mode, only updates elements within webXTerm container
      */
     updateAllTexts() {
-        // 在集成模式下，只更新 webXTerm 容器内的元素，避免影响主应用
+        // 🆕 优先使用构造函数传入的容器（解决多实例冲突）
         let root = document;
-        if (window.__WEBXTERM_INTEGRATED_MODE__) {
+        if (this.container) {
+            root = this.container;
+        } else if (window.__WEBXTERM_INTEGRATED_MODE__) {
+            // 回退到查询容器（旧逻辑）
             const container = document.querySelector('.webxterm-container');
             if (container) {
                 root = container;

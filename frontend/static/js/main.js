@@ -7,21 +7,25 @@ import { TerminalManager } from './terminal.js';
 import { SessionManager } from './sessions.js';
 import { UIManager } from './ui.js';
 import { ConnectionManager } from './connection.js';
-import { i18n } from './i18n/i18n.js';
+import { I18nManager, i18n } from './i18n/i18n.js';  // 🆕 导入 I18nManager 类
 import { SessionSummaryUtil } from './session-summary.js';
 import { SSHKeyUI } from './ssh-key-ui.js';
 
 class webXTermApp {
-    constructor() {
+    constructor(i18nInstance = null, dom = null, container = null) {
         // Configuration
         this.config = {
             debug: window.DEBUG || false
         };
 
+        // 🆕 存储容器和 ScopedDOM（解决多实例冲突）
+        this.dom = dom;
+        this.container = container;
+
         // Core managers
-        this.terminalManager = new TerminalManager();
+        this.terminalManager = new TerminalManager(null, dom, container);  // 🆕 传递 dom 和 container
         this.sessionManager = new SessionManager();
-        this.uiManager = new UIManager();
+        this.uiManager = new UIManager(dom, container);  // 🆕 传递 dom 和 container
 
         // Single session connection state
         this.currentConnection = null;
@@ -31,7 +35,7 @@ class webXTermApp {
         this.lastConnectionConfig = null;
 
         // Internationalization manager
-        this.i18n = i18n;
+        this.i18n = i18nInstance || i18n;  // 🆕 使用传入的实例或全局实例
 
         // SSH Key UI
         this.sshKeyUI = null;
@@ -215,10 +219,14 @@ class webXTermApp {
 
     initializeSingleSessionTerminal() {
         // Initialize terminal for single session
-        const terminalElement = document.getElementById('terminal');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const byId = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
+        const terminalElement = byId('terminal');
         if (terminalElement) {
             this.terminalManager.init(terminalElement);
             this.log('Single session terminal initialized');
+        } else {
+            console.warn('⚠️ Terminal element not found!');
         }
     }
 
@@ -1037,18 +1045,23 @@ class webXTermApp {
  * 初始化 webXTerm 应用（供集成模式和独立模式共用）
  * @param {Object} options 初始化选项
  * @param {boolean} options.skipTheme 是否跳过主题初始化（集成模式通常为 true）
+ * @param {Object} options.dom ScopedDOM 实例（集成模式传递）
+ * @param {HTMLElement} options.container 容器元素（集成模式传递）
  * @returns {webXTermApp} 应用实例
  */
 function initWebXTermApplication(options = {}) {
-    const { skipTheme = false } = options;
-    
+    const { skipTheme = false, dom = null, container = null } = options;
+
     console.log('🚀 webXTerm: 开始初始化...');
-    
+    console.log('   - skipTheme:', skipTheme);
+    console.log('   - dom:', dom ? '✅ ScopedDOM 已提供' : '⚠️  使用全局 DOM');
+    console.log('   - container:', container ? '✅ 已提供' : '⚠️  无容器');
+
     // Load saved theme (独立模式)
     if (!skipTheme) {
         const savedTheme = localStorage.getItem('webxterm-theme') || 'dark';
         document.body.setAttribute('data-theme', savedTheme);
-        
+
         // Update theme toggle icon
         const themeToggle = document.getElementById('theme-toggle');
         if (themeToggle) {
@@ -1059,12 +1072,36 @@ function initWebXTermApplication(options = {}) {
         }
     }
 
-    // Initialize quick connect toggle
-    initQuickConnectToggle();
+    // 🆕 Initialize quick connect toggle (传递 ScopedDOM)
+    initQuickConnectToggle(dom);
+
+    // 🆕 如果传入了容器，创建独立的 i18n 实例（解决多实例冲突）
+    let appI18n = i18n;  // 默认使用全局 i18n
+    if (container) {
+        console.log('🌐 创建独立的 i18n 实例（容器模式）');
+        appI18n = new I18nManager(container);
+        // 同步全局 i18n 的当前语言
+        const currentLang = localStorage.getItem('language') || i18n.currentLanguage;
+        appI18n.setLanguage(currentLang);
+    }
 
     // Create application instance
-    const app = new webXTermApp();
-    window.webxterm = app;
+    const app = new webXTermApp(appI18n, dom, container);
+
+    // 🆕 根据模式设置全局引用
+    if (container) {
+        // 集成模式：使用命名空间避免冲突
+        if (!window.webxtermInstances) {
+            window.webxtermInstances = {};
+        }
+        // 使用容器的唯一标识作为 key
+        const instanceKey = `instance_${Date.now()}`;
+        window.webxtermInstances[instanceKey] = app;
+        console.log(`✅ WebXTerm 实例已注册: window.webxtermInstances.${instanceKey}`);
+    } else {
+        // 独立模式：使用传统的全局变量
+        window.webxterm = app;
+    }
     
     console.log('✅ webXTerm: 初始化完成');
     return app;
@@ -1083,11 +1120,18 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Quick Connect Toggle functionality
-function initQuickConnectToggle() {
-    const toggleBtn = document.getElementById('quick-connect-toggle');
-    const quickConnectSection = document.querySelector('.quick-connect-section');
+function initQuickConnectToggle(dom = null) {
+    // 🆕 使用作用域 DOM 或全局 DOM（自动适配集成模式和独立模式）
+    const $ = dom ? (selector) => dom.$(selector) : (selector) => document.querySelector(selector);
+    const byId = dom ? (id) => dom.byId(id) : (id) => document.getElementById(id);
 
-    if (!toggleBtn || !quickConnectSection) return;
+    const toggleBtn = byId('quick-connect-toggle');
+    const quickConnectSection = $('.quick-connect-section');
+
+    if (!toggleBtn || !quickConnectSection) {
+        console.warn('⚠️ Quick connect toggle 或 section 未找到');
+        return;
+    }
 
     // Load saved state
     const isCollapsed = localStorage.getItem('webxterm-quick-connect-collapsed') === 'true';
@@ -1099,7 +1143,10 @@ function initQuickConnectToggle() {
     toggleBtn.addEventListener('click', () => {
         const collapsed = quickConnectSection.classList.toggle('collapsed');
         localStorage.setItem('webxterm-quick-connect-collapsed', collapsed.toString());
+        console.log('✅ Quick connect toggled, collapsed:', collapsed);
     });
+
+    console.log('✅ Quick connect toggle 已初始化');
 }
 
 // Export for debugging and integration

@@ -4,7 +4,7 @@
  */
 
 export class UIManager {
-    constructor() {
+    constructor(dom = null, container = null) {
         this.elements = {};
         this.eventListeners = new Map();
         this.isFullscreen = false;
@@ -13,6 +13,15 @@ export class UIManager {
         // Toast notification system
         this.toastContainer = null;
         this.toastCount = 0;
+
+        // 🆕 存储 ScopedDOM 和容器（解决多实例冲突）
+        this.dom = dom;
+        this.container = container;
+
+        // 🆕 创建作用域查询辅助函数
+        // 如果有 dom，使用 ScopedDOM；否则回退到全局 document
+        this.$ = dom ? (selector) => dom.$(selector) : (selector) => document.querySelector(selector);
+        this.byId = dom ? (id) => dom.byId(id) : (id) => document.getElementById(id);
     }
 
     init() {
@@ -28,81 +37,81 @@ export class UIManager {
         // Core elements
         this.elements = {
             // Sidebar
-            sidebar: document.getElementById('sidebar'),
+            sidebar: this.byId('sidebar'),
 
             // Quick connect form
-            quickConnectForm: document.getElementById('quick-connect-form'),
-            quickConnectSection: document.querySelector('.quick-connect-section'),
-            hostname: document.getElementById('hostname'),
-            port: document.getElementById('port'),
-            connectionType: document.getElementById('connection-type'),
-            username: document.getElementById('username'),
-            password: document.getElementById('password'),
-            privateKey: document.getElementById('private-key'),
-            passphrase: document.getElementById('passphrase'),
-            encoding: document.getElementById('encoding'),
-            connectBtn: document.getElementById('connect-btn'),
-            disconnectBtn: document.getElementById('disconnect-btn'),
-            saveSessionBtn: document.getElementById('save-session-btn'),
-            sshOptions: document.getElementById('ssh-options'),
-            moreOptionsBtn: document.getElementById('more-options-btn'),
+            quickConnectForm: this.byId('quick-connect-form'),
+            quickConnectSection: this.$('.quick-connect-section'),
+            hostname: this.byId('hostname'),
+            port: this.byId('port'),
+            connectionType: this.byId('connection-type'),
+            username: this.byId('username'),
+            password: this.byId('password'),
+            privateKey: this.byId('private-key'),
+            passphrase: this.byId('passphrase'),
+            encoding: this.byId('encoding'),
+            connectBtn: this.byId('connect-btn'),
+            disconnectBtn: this.byId('disconnect-btn'),
+            saveSessionBtn: this.byId('save-session-btn'),
+            sshOptions: this.byId('ssh-options'),
+            moreOptionsBtn: this.byId('more-options-btn'),
 
             // Sessions
-            sessionsList: document.getElementById('sessions-list'),
-            sessionSearch: document.getElementById('session-search'),
-            addSession: document.getElementById('add-session'),
+            sessionsList: this.byId('sessions-list'),
+            sessionSearch: this.byId('session-search'),
+            addSession: this.byId('add-session'),
 
             // Main content
-            statusBar: document.getElementById('status-bar'),
-            connectionStatus: document.getElementById('connection-status'),
-            connectionInfo: document.getElementById('connection-info'),
-            terminalSize: document.getElementById('terminal-size'),
-            fullscreenToggle: document.getElementById('fullscreen-toggle'),
+            statusBar: this.byId('status-bar'),
+            connectionStatus: this.byId('connection-status'),
+            connectionInfo: this.byId('connection-info'),
+            terminalSize: this.byId('terminal-size'),
+            fullscreenToggle: this.byId('fullscreen-toggle'),
 
             // Terminal
-            terminalContainer: document.getElementById('terminal-container'),
-            terminal: document.getElementById('terminal'),
-            terminalOverlay: document.getElementById('terminal-overlay'),
-            overlayMessage: document.getElementById('overlay-message'),
+            terminalContainer: this.byId('terminal-container'),
+            terminal: this.byId('terminal'),
+            terminalOverlay: this.byId('terminal-overlay'),
+            overlayMessage: this.byId('overlay-message'),
 
             // Modal
-            modalOverlay: document.getElementById('modal-overlay'),
-            sessionModal: document.getElementById('session-modal'),
-            modalTitle: document.getElementById('modal-title'),
-            modalClose: document.getElementById('modal-close'),
-            sessionForm: document.getElementById('session-form'),
-            sessionName: document.getElementById('session-name'),
-            sessionHostname: document.getElementById('session-hostname'),
-            sessionConnectionType: document.getElementById('session-connection-type'),
-            sessionPort: document.getElementById('session-port'),
-            sessionUsername: document.getElementById('session-username'),
-            sessionPassword: document.getElementById('session-password'),
-            sessionPrivateKey: document.getElementById('session-private-key'),
-            sessionPassphrase: document.getElementById('session-passphrase'),
-            sessionGroup: document.getElementById('session-group'),
-            sessionEncoding: document.getElementById('session-encoding'),
-            sessionSave: document.getElementById('session-save'),
-            sessionCancel: document.getElementById('session-cancel'),
-            sessionMoreOptionsBtn: document.getElementById('session-more-options-btn'),
-            sessionSshOptions: document.getElementById('session-ssh-options'),
+            modalOverlay: this.byId('modal-overlay'),
+            sessionModal: this.byId('session-modal'),
+            modalTitle: this.byId('modal-title'),
+            modalClose: this.byId('modal-close'),
+            sessionForm: this.byId('session-form'),
+            sessionName: this.byId('session-name'),
+            sessionHostname: this.byId('session-hostname'),
+            sessionConnectionType: this.byId('session-connection-type'),
+            sessionPort: this.byId('session-port'),
+            sessionUsername: this.byId('session-username'),
+            sessionPassword: this.byId('session-password'),
+            sessionPrivateKey: this.byId('session-private-key'),
+            sessionPassphrase: this.byId('session-passphrase'),
+            sessionGroup: this.byId('session-group'),
+            sessionEncoding: this.byId('session-encoding'),
+            sessionSave: this.byId('session-save'),
+            sessionCancel: this.byId('session-cancel'),
+            sessionMoreOptionsBtn: this.byId('session-more-options-btn'),
+            sessionSshOptions: this.byId('session-ssh-options'),
 
             // Delete modal
-            deleteModal: document.getElementById('delete-modal'),
-            deleteModalTitle: document.getElementById('delete-modal-title'),
-            deleteModalMessage: document.getElementById('delete-modal-message'),
-            deleteModalClose: document.getElementById('delete-modal-close'),
-            deleteConfirm: document.getElementById('delete-confirm'),
-            deleteCancel: document.getElementById('delete-cancel'),
+            deleteModal: this.byId('delete-modal'),
+            deleteModalTitle: this.byId('delete-modal-title'),
+            deleteModalMessage: this.byId('delete-modal-message'),
+            deleteModalClose: this.byId('delete-modal-close'),
+            deleteConfirm: this.byId('delete-confirm'),
+            deleteCancel: this.byId('delete-cancel'),
 
             // Group selector
-            groupDropdownBtn: document.getElementById('group-dropdown-btn'),
-            groupDropdown: document.getElementById('group-dropdown'),
+            groupDropdownBtn: this.byId('group-dropdown-btn'),
+            groupDropdown: this.byId('group-dropdown'),
 
             // About modal
-            appTitle: document.getElementById('app-title'),
-            aboutModal: document.getElementById('about-modal'),
-            aboutModalClose: document.getElementById('about-modal-close'),
-            aboutModalOk: document.getElementById('about-modal-ok')
+            appTitle: this.byId('app-title'),
+            aboutModal: this.byId('about-modal'),
+            aboutModalClose: this.byId('about-modal-close'),
+            aboutModalOk: this.byId('about-modal-ok')
         };
 
         // Validate elements
@@ -117,7 +126,7 @@ export class UIManager {
 
     setupEventListeners() {
         // Theme toggle
-        const themeToggle = document.getElementById('theme-toggle');
+        const themeToggle = this.byId('theme-toggle');
         if (themeToggle) {
             themeToggle.addEventListener('click', () => {
                 this.emit('themeToggle');
@@ -147,7 +156,7 @@ export class UIManager {
         // Clear filled session name when hostname or username is modified
         // This ensures that the session modal shows the correct suggested name
         const clearFilledSessionName = () => {
-            const quickConnectForm = document.getElementById('quick-connect-form');
+            const quickConnectForm = this.byId('quick-connect-form');
             if (quickConnectForm && quickConnectForm.hasAttribute('data-filled-session-name')) {
                 quickConnectForm.removeAttribute('data-filled-session-name');
             }
@@ -206,12 +215,12 @@ export class UIManager {
         });
 
         // SSH key label click to open SSH key management
-        const sshKeyLabel = document.getElementById('ssh-key-label');
+        const sshKeyLabel = this.byId('ssh-key-label');
         if (sshKeyLabel) {
             sshKeyLabel.addEventListener('click', (e) => {
                 e.preventDefault();
                 // Trigger SSH key management modal
-                const manageKeysBtn = document.getElementById('manage-keys-btn');
+                const manageKeysBtn = this.byId('manage-keys-btn');
                 if (manageKeysBtn) {
                     manageKeysBtn.click();
                 }
@@ -393,7 +402,7 @@ export class UIManager {
     }
 
     updateMoreOptionsVisibility(isSSH) {
-        const moreOptionsToggle = document.querySelector('.more-options-toggle');
+        const moreOptionsToggle = this.$('.more-options-toggle');
 
         if (!moreOptionsToggle) return;
 
@@ -472,7 +481,7 @@ export class UIManager {
     }
 
     getQuickConnectFormData() {
-        const sshKeySelect = document.getElementById('ssh-key-select');
+        const sshKeySelect = this.byId('ssh-key-select');
         return {
             hostname: this.elements.hostname?.value || '',
             port: this.elements.port?.value || '22',
@@ -666,7 +675,7 @@ export class UIManager {
         }
 
         // 检查快速连接表单是否折叠，如果折叠则展开
-        const quickConnectSection = document.querySelector('.quick-connect-section');
+        const quickConnectSection = this.$('.quick-connect-section');
         if (quickConnectSection && quickConnectSection.classList.contains('collapsed')) {
             quickConnectSection.classList.remove('collapsed');
             // 更新 localStorage 状态
@@ -801,7 +810,7 @@ export class UIManager {
                     
                     // Auto-hide sidebar on mobile after double-click connect
                     if (window.innerWidth <= 768) {
-                        const sidebar = document.querySelector('.session-sidebar');
+                        const sidebar = this.$('.session-sidebar');
                         if (sidebar) {
                             console.log('[Mobile] Hiding sidebar after session double-click');
                             setTimeout(() => {
@@ -827,7 +836,7 @@ export class UIManager {
                     
                     // Auto-hide sidebar on mobile after clicking connect
                     if (window.innerWidth <= 768) {
-                        const sidebar = document.querySelector('.session-sidebar');
+                        const sidebar = this.$('.session-sidebar');
                         if (sidebar) {
                             console.log('[Mobile] Hiding sidebar after session connect button click');
                             setTimeout(() => {
@@ -1001,7 +1010,7 @@ export class UIManager {
         // Clear editing session state
         this.editingSession = null;
         // Clear filled session name from quick connect form
-        const quickConnectForm = document.getElementById('quick-connect-form');
+        const quickConnectForm = this.byId('quick-connect-form');
         if (quickConnectForm) {
             quickConnectForm.removeAttribute('data-filled-session-name');
         }
@@ -1053,7 +1062,7 @@ export class UIManager {
 
     handleSessionSave() {
         // Collect all form data
-        const sessionSshKeySelect = document.getElementById('session-ssh-key-select');
+        const sessionSshKeySelect = this.byId('session-ssh-key-select');
         const sessionData = {
             name: this.elements.sessionName?.value?.trim(),
             hostname: this.elements.sessionHostname?.value?.trim(),
@@ -1319,7 +1328,7 @@ export class UIManager {
     }
 
     updateSessionSSHOptionsVisibility(isSSH) {
-        const sshOptionsToggle = document.querySelector('.ssh-options-toggle');
+        const sshOptionsToggle = this.$('.ssh-options-toggle');
 
         if (!sshOptionsToggle) return;
 
@@ -1364,7 +1373,7 @@ export class UIManager {
         if (this.elements.sessionName) {
             if (isNewSession) {
                 // Check if quick connect form has a filled session name
-                const quickConnectForm = document.getElementById('quick-connect-form');
+                const quickConnectForm = this.byId('quick-connect-form');
                 const filledSessionName = quickConnectForm?.getAttribute('data-filled-session-name');
 
                 if (filledSessionName) {
@@ -1407,7 +1416,7 @@ export class UIManager {
         }
 
         // Fill SSH key selector
-        const sessionSshKeySelect = document.getElementById('session-ssh-key-select');
+        const sessionSshKeySelect = this.byId('session-ssh-key-select');
         if (sessionSshKeySelect) {
             sessionSshKeySelect.value = data.ssh_key_id || '';
         }
@@ -1573,7 +1582,7 @@ export class UIManager {
         }
 
         // Fill SSH key selector if available
-        const sshKeySelect = document.getElementById('ssh-key-select');
+        const sshKeySelect = this.byId('ssh-key-select');
         if (sshKeySelect && session.ssh_key_id) {
             sshKeySelect.value = session.ssh_key_id;
         } else if (sshKeySelect) {
@@ -1627,7 +1636,7 @@ export class UIManager {
         }
 
         // Store the filled session name in a hidden attribute
-        const quickConnectForm = document.getElementById('quick-connect-form');
+        const quickConnectForm = this.byId('quick-connect-form');
         if (quickConnectForm) {
             quickConnectForm.setAttribute('data-filled-session-name', session.name);
         }
@@ -1640,7 +1649,7 @@ export class UIManager {
 
     showFormFilledFeedback(sessionName) {
         // Add shake animation to Quick Connect form
-        const quickConnectSection = document.querySelector('.quick-connect-section');
+        const quickConnectSection = this.$('.quick-connect-section');
         if (quickConnectSection) {
             quickConnectSection.classList.add('form-filled-shake');
             setTimeout(() => {
@@ -1654,7 +1663,7 @@ export class UIManager {
 
     showFilledIndicator(sessionName) {
         // Remove existing indicator if any
-        const existingIndicator = document.querySelector('.form-filled-indicator');
+        const existingIndicator = this.$('.form-filled-indicator');
         if (existingIndicator) {
             existingIndicator.remove();
         }
@@ -1665,7 +1674,7 @@ export class UIManager {
         indicator.textContent = '已填充';
 
         // Find Quick Connect section and add indicator to section-header
-        const quickConnectSection = document.querySelector('.quick-connect-section');
+        const quickConnectSection = this.$('.quick-connect-section');
         if (quickConnectSection) {
             const sectionHeader = quickConnectSection.querySelector('.section-header');
             if (sectionHeader) {

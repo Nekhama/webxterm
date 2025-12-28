@@ -4,7 +4,7 @@
  */
 
 export class TerminalManager {
-    constructor(connectionType = null) {
+    constructor(connectionType = null, dom = null, container = null) {
         this.terminal = null;
         this.fitAddon = null;
         this.webLinksAddon = null;
@@ -13,6 +13,13 @@ export class TerminalManager {
         this.connectionType = connectionType;
         this.dataBuffer = []; // Buffer for data received before terminal is ready
         this.resizeHandler = null; // 保存 resize 监听器引用，用于清理
+
+        // 🆕 存储 ScopedDOM（解决多实例冲突）
+        this.dom = dom;
+        this.appContainer = container;
+
+        // 🆕 创建作用域查询辅助函数
+        this.byId = dom ? (id) => dom.byId(id) : (id) => document.getElementById(id);
         
         this.themes = {
             dark: {
@@ -65,7 +72,8 @@ export class TerminalManager {
     }
 
     init(containerElement = null) {
-        this.container = containerElement || document.getElementById('terminal');
+        // 🆕 使用作用域查询（解决多实例冲突）
+        this.container = containerElement || this.byId('terminal');
         if (!this.container) {
             throw new Error('Terminal container not found');
         }
