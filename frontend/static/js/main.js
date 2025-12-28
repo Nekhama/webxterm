@@ -552,8 +552,10 @@ class webXTermApp {
                 this.isReplacingConnection = false;
             }
 
-            // Update UI
-            this.uiManager.setConnectionStatus('disconnected');
+            // Update UI - 检查 uiManager 是否存在（应用销毁时可能为 null）
+            if (this.uiManager) {
+                this.uiManager.setConnectionStatus('disconnected');
+            }
 
             // Hide disconnect button
             const disconnectBtn = document.getElementById('disconnect-current-session');
@@ -568,15 +570,21 @@ class webXTermApp {
         // Error event
         connectionManager.on('error', (error) => {
             console.error('Connection error:', error);
-            this.uiManager.showError(`Connection error: ${error.message}`);
+            // 检查 uiManager 是否存在（应用销毁时可能为 null）
+            if (this.uiManager) {
+                this.uiManager.showError(`Connection error: ${error.message}`);
+            }
         });
 
         // Setup terminal input
-        this.terminalManager.onData((data) => {
-            if (connectionManager && connectionManager.isConnected) {
-                connectionManager.sendData(data);
-            }
-        });
+        // 检查 terminalManager 是否存在（应用销毁时可能为 null）
+        if (this.terminalManager) {
+            this.terminalManager.onData((data) => {
+                if (connectionManager && connectionManager.isConnected) {
+                    connectionManager.sendData(data);
+                }
+            });
+        }
     }
 
     showConnectionSummary(reason, config) {
