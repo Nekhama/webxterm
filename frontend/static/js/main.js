@@ -514,6 +514,13 @@ class webXTermApp {
             this.isConnecting = false;
             this.connectedAt = new Date();
 
+            // Set connection type for character mapping (DEL -> Ctrl-H conversion)
+            const connectionType = config.connection_type || 'ssh';
+            if (typeof this.terminalManager.setConnectionType === 'function') {
+                this.terminalManager.setConnectionType(connectionType);
+                this.log(`Connection type set to: ${connectionType}`);
+            }
+
             // Update UI
             this.uiManager.setConnectionStatus('connected');
             this.uiManager.updateConnectionInfo(config);
