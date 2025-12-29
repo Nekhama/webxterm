@@ -11,48 +11,59 @@ export class SSHKeyUI {
         this.keyManager = new SSHKeyManager();
         this.currentEditingKeyId = null;
         this.deferLoading = options.deferLoading || false;
+        
+        // 🆕 存储 ScopedDOM（解决多实例冲突）
+        this.dom = options.dom || null;
+        this.container = options.container || null;
+        
+        // 🆕 创建作用域 DOM 查询辅助函数
+        this.byId = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
+        this.$ = this.dom ? (selector) => this.dom.$(selector) : (selector) => document.querySelector(selector);
+        this.$$ = this.dom ? (selector) => this.dom.$$(selector) : (selector) => document.querySelectorAll(selector);
+        
         this.initElements();
         this.initEventListeners();
     }
 
     initElements() {
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
         // Modal elements
-        this.modal = document.getElementById('ssh-key-modal');
-        this.modalOverlay = document.getElementById('modal-overlay');
-        this.closeBtn = document.getElementById('ssh-key-modal-close');
+        this.modal = this.byId('ssh-key-modal');
+        this.modalOverlay = this.byId('modal-overlay');
+        this.closeBtn = this.byId('ssh-key-modal-close');
 
         // Delete modal elements
-        this.deleteModal = document.getElementById('delete-ssh-key-modal');
-        this.deleteModalClose = document.getElementById('delete-ssh-key-modal-close');
-        this.deleteModalMessage = document.getElementById('delete-ssh-key-modal-message');
-        this.deleteConfirmBtn = document.getElementById('delete-ssh-key-confirm');
-        this.deleteCancelBtn = document.getElementById('delete-ssh-key-cancel');
+        this.deleteModal = this.byId('delete-ssh-key-modal');
+        this.deleteModalClose = this.byId('delete-ssh-key-modal-close');
+        this.deleteModalMessage = this.byId('delete-ssh-key-modal-message');
+        this.deleteConfirmBtn = this.byId('delete-ssh-key-confirm');
+        this.deleteCancelBtn = this.byId('delete-ssh-key-cancel');
 
         // List elements
-        this.keysList = document.getElementById('ssh-keys-list-content');
-        this.addKeyBtn = document.getElementById('add-ssh-key-btn');
+        this.keysList = this.byId('ssh-keys-list-content');
+        this.addKeyBtn = this.byId('add-ssh-key-btn');
 
         // Form elements
-        this.formContainer = document.getElementById('ssh-key-form-container');
-        this.formTitle = document.getElementById('ssh-key-form-title');
-        this.form = document.getElementById('ssh-key-form');
-        this.keyIdInput = document.getElementById('ssh-key-id');
-        this.nameInput = document.getElementById('ssh-key-name');
-        this.descInput = document.getElementById('ssh-key-description');
-        this.privateKeyInput = document.getElementById('ssh-key-private-key');
-        this.passphraseInput = document.getElementById('ssh-key-passphrase');
-        this.cancelFormBtn = document.getElementById('cancel-ssh-key-form');
+        this.formContainer = this.byId('ssh-key-form-container');
+        this.formTitle = this.byId('ssh-key-form-title');
+        this.form = this.byId('ssh-key-form');
+        this.keyIdInput = this.byId('ssh-key-id');
+        this.nameInput = this.byId('ssh-key-name');
+        this.descInput = this.byId('ssh-key-description');
+        this.privateKeyInput = this.byId('ssh-key-private-key');
+        this.passphraseInput = this.byId('ssh-key-passphrase');
+        this.cancelFormBtn = this.byId('cancel-ssh-key-form');
 
         // File upload
-        this.uploadBtn = document.getElementById('upload-key-file-btn');
-        this.fileInput = document.getElementById('key-file-input');
+        this.uploadBtn = this.byId('upload-key-file-btn');
+        this.fileInput = this.byId('key-file-input');
 
         // Trigger button
-        this.manageKeysBtn = document.getElementById('manage-keys-btn');
+        this.manageKeysBtn = this.byId('manage-keys-btn');
 
         // Key selectors in forms
-        this.quickConnectKeySelect = document.getElementById('ssh-key-select');
-        this.sessionKeySelect = document.getElementById('session-ssh-key-select');
+        this.quickConnectKeySelect = this.byId('ssh-key-select');
+        this.sessionKeySelect = this.byId('session-ssh-key-select');
     }
 
     initEventListeners() {

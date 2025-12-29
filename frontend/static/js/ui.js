@@ -22,6 +22,7 @@ export class UIManager {
         // 如果有 dom，使用 ScopedDOM；否则回退到全局 document
         this.$ = dom ? (selector) => dom.$(selector) : (selector) => document.querySelector(selector);
         this.byId = dom ? (id) => dom.byId(id) : (id) => document.getElementById(id);
+        this.$$ = dom ? (selector) => dom.$$(selector) : (selector) => document.querySelectorAll(selector);
     }
 
     init() {
@@ -960,7 +961,8 @@ export class UIManager {
         this.editingSession = session;
 
         // Ensure only session modal is shown - close all other modals
-        const allModals = document.querySelectorAll('.modal');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const allModals = this.$$('.modal');
         allModals.forEach(modal => {
             if (modal.id !== 'session-modal') {
                 modal.style.display = 'none';
@@ -1027,7 +1029,8 @@ export class UIManager {
             `Are you sure you want to delete the session <strong>"${this.escapeHtml(session.name)}"</strong>?`;
 
         // Ensure only delete modal is shown - close all other modals
-        const allModals = document.querySelectorAll('.modal');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const allModals = this.$$('.modal');
         allModals.forEach(modal => {
             if (modal.id !== 'delete-modal') {
                 modal.style.display = 'none';
@@ -1206,7 +1209,8 @@ export class UIManager {
 
     clearAllContextMenus() {
         // Remove all existing context menus
-        const existingMenus = document.querySelectorAll('.context-menu');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const existingMenus = this.$$('.context-menu');
         existingMenus.forEach(menu => {
             if (menu.parentNode) {
                 menu.parentNode.removeChild(menu);
@@ -1710,7 +1714,8 @@ export class UIManager {
         if (!this.elements.modalOverlay || !this.elements.aboutModal) return;
 
         // Ensure only about modal is shown - close all other modals
-        const allModals = document.querySelectorAll('.modal');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const allModals = this.$$('.modal');
         allModals.forEach(modal => {
             if (modal.id !== 'about-modal') {
                 modal.style.display = 'none';

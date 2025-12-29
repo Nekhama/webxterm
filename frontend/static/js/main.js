@@ -109,7 +109,8 @@ class webXTermApp {
         // 不调用 sessionManager.init()，延迟加载会话列表
 
         // Initialize SSH Key UI (延迟加载SSH密钥)
-        this.sshKeyUI = new SSHKeyUI(this.i18n, { deferLoading: true });
+        // 🆕 传递 dom 和 container（解决多实例冲突）
+        this.sshKeyUI = new SSHKeyUI(this.i18n, { deferLoading: true, dom: this.dom, container: this.container });
 
         // Set up component communication
         this.setupComponentCommunication();
@@ -152,11 +153,14 @@ class webXTermApp {
             
             this.log('URL 参数检测到连接信息:', { host, port, user, hasPassword: !!password, autoconnect });
             
+            // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+            const byId = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
+            
             // 填充表单字段
-            const hostnameInput = document.getElementById('hostname');
-            const portInput = document.getElementById('port');
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
+            const hostnameInput = byId('hostname');
+            const portInput = byId('port');
+            const usernameInput = byId('username');
+            const passwordInput = byId('password');
             
             if (hostnameInput && host) {
                 hostnameInput.value = host;
@@ -182,7 +186,7 @@ class webXTermApp {
                 this.uiManager.showInfo(`正在自动连接: ${user || 'root'}@${host}:${port || 22}`);
                 // 使用 requestAnimationFrame 确保 DOM 更新后立即连接
                 requestAnimationFrame(() => {
-                    const connectBtn = document.getElementById('connect-btn');
+                    const connectBtn = byId('connect-btn');
                     if (connectBtn) {
                         connectBtn.click();
                     }
@@ -199,7 +203,7 @@ class webXTermApp {
                         if (e.key === 'Enter' && passwordInput.value) {
                             e.preventDefault();
                             passwordInput.removeEventListener('keydown', handleEnter);
-                            const connectBtn = document.getElementById('connect-btn');
+                            const connectBtn = byId('connect-btn');
                             if (connectBtn) {
                                 connectBtn.click();
                             }
@@ -244,7 +248,8 @@ class webXTermApp {
         await this.sessionManager.init();
 
         // Initialize SSH Key UI
-        this.sshKeyUI = new SSHKeyUI(this.i18n);
+        // 🆕 传递 dom 和 container（解决多实例冲突）
+        this.sshKeyUI = new SSHKeyUI(this.i18n, { dom: this.dom, container: this.container });
 
         // Set up component communication
         this.setupComponentCommunication();
@@ -316,9 +321,12 @@ class webXTermApp {
 
         // Language selector - 集成模式下跳过，使用主应用的语言选择器
         if (!window.__WEBXTERM_INTEGRATED_MODE__) {
-            const langToggle = document.getElementById('lang-toggle');
-            const langDropdown = document.getElementById('lang-dropdown');
-            const langSelector = document.querySelector('.language-selector');
+            // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+            const byIdLang = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
+            const $Lang = this.dom ? (sel) => this.dom.$(sel) : (sel) => document.querySelector(sel);
+            const langToggle = byIdLang('lang-toggle');
+            const langDropdown = byIdLang('lang-dropdown');
+            const langSelector = $Lang('.language-selector');
 
             if (langToggle && langDropdown) {
                 // Toggle dropdown
@@ -339,7 +347,7 @@ class webXTermApp {
 
                 // Close dropdown when clicking outside
                 document.addEventListener('click', (e) => {
-                    if (!langSelector.contains(e.target)) {
+                    if (langSelector && !langSelector.contains(e.target)) {
                         this.hideLanguageDropdown();
                     }
                 });
@@ -347,7 +355,9 @@ class webXTermApp {
         }
 
         // Disconnect current session button
-        const disconnectCurrentBtn = document.getElementById('disconnect-current-session');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const byId = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
+        const disconnectCurrentBtn = byId('disconnect-current-session');
         if (disconnectCurrentBtn) {
             disconnectCurrentBtn.addEventListener('click', () => {
                 this.disconnectCurrentSession();
@@ -408,7 +418,9 @@ class webXTermApp {
         }
 
         // Clear any existing session summary overlays before starting new connection
-        const terminalContainer = SessionSummaryUtil.getContainer();
+        // 🆕 使用 ScopedDOM 获取容器（解决多实例冲突）
+        const $quick = this.dom ? (sel) => this.dom.$(sel) : (sel) => document.querySelector(sel);
+        const terminalContainer = $quick('.terminal-container');
         if (terminalContainer) {
             const existingOverlay = terminalContainer.querySelector('.session-summary-overlay');
             if (existingOverlay) {
@@ -493,6 +505,9 @@ class webXTermApp {
     }
 
     setupConnectionEvents(connectionManager, config) {
+        // 🆕 创建 ScopedDOM 辅助函数引用（供事件回调使用）
+        const byId = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
+        
         // Connected event
         connectionManager.on('connected', () => {
             this.log('Connection established');
@@ -505,7 +520,8 @@ class webXTermApp {
             this.uiManager.hideOverlay();
 
             // Show disconnect button
-            const disconnectBtn = document.getElementById('disconnect-current-session');
+            // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+            const disconnectBtn = byId('disconnect-current-session');
             if (disconnectBtn) {
                 disconnectBtn.style.display = '';
             }
@@ -558,7 +574,8 @@ class webXTermApp {
             }
 
             // Hide disconnect button
-            const disconnectBtn = document.getElementById('disconnect-current-session');
+            // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+            const disconnectBtn = byId('disconnect-current-session');
             if (disconnectBtn) {
                 disconnectBtn.style.display = 'none';
             }
@@ -589,7 +606,9 @@ class webXTermApp {
 
     showConnectionSummary(reason, config) {
         const duration = Date.now() - this.connectedAt.getTime();
-        const container = SessionSummaryUtil.getContainer();
+        // 🆕 使用 ScopedDOM 获取容器（解决多实例冲突）
+        const $ = this.dom ? (sel) => this.dom.$(sel) : (sel) => document.querySelector(sel);
+        const container = $('.terminal-container');
 
         SessionSummaryUtil.showSessionSummary({
             container,
@@ -752,7 +771,9 @@ class webXTermApp {
     }
 
     updateThemeIcon(theme) {
-        const themeToggle = document.getElementById('theme-toggle');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const byId = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
+        const themeToggle = byId('theme-toggle');
         if (themeToggle) {
             const icon = themeToggle.querySelector('.theme-icon');
             if (icon) {
@@ -848,8 +869,11 @@ class webXTermApp {
     }
 
     toggleLanguageDropdown() {
-        const langDropdown = document.getElementById('lang-dropdown');
-        const langSelector = document.querySelector('.language-selector');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const byId = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
+        const $ = this.dom ? (sel) => this.dom.$(sel) : (sel) => document.querySelector(sel);
+        const langDropdown = byId('lang-dropdown');
+        const langSelector = $('.language-selector');
 
         if (!langDropdown || !langSelector) return;
 
@@ -863,8 +887,11 @@ class webXTermApp {
     }
 
     showLanguageDropdown() {
-        const langDropdown = document.getElementById('lang-dropdown');
-        const langSelector = document.querySelector('.language-selector');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const byId = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
+        const $ = this.dom ? (sel) => this.dom.$(sel) : (sel) => document.querySelector(sel);
+        const langDropdown = byId('lang-dropdown');
+        const langSelector = $('.language-selector');
 
         if (!langDropdown || !langSelector) return;
 
@@ -876,8 +903,11 @@ class webXTermApp {
     }
 
     hideLanguageDropdown() {
-        const langDropdown = document.getElementById('lang-dropdown');
-        const langSelector = document.querySelector('.language-selector');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const byId = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
+        const $ = this.dom ? (sel) => this.dom.$(sel) : (sel) => document.querySelector(sel);
+        const langDropdown = byId('lang-dropdown');
+        const langSelector = $('.language-selector');
 
         if (!langDropdown || !langSelector) return;
 
@@ -886,7 +916,9 @@ class webXTermApp {
     }
 
     updateActiveLanguageOption() {
-        const langOptions = document.querySelectorAll('.lang-option');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const $$ = this.dom ? (sel) => this.dom.$$(sel) : (sel) => document.querySelectorAll(sel);
+        const langOptions = $$('.lang-option');
 
         langOptions.forEach(option => {
             const lang = option.dataset.lang;
@@ -899,7 +931,9 @@ class webXTermApp {
     }
 
     updateLanguageDisplay() {
-        const langButton = document.getElementById('lang-toggle');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const byId = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
+        const langButton = byId('lang-toggle');
         if (!langButton) return;
 
         // Language display mapping
@@ -972,8 +1006,12 @@ class webXTermApp {
      * 设置移动端侧边栏切换功能
      */
     setupMobileSidebarToggle() {
-        const sidebar = document.querySelector('.session-sidebar');
-        const hamburgerBtn = document.getElementById('mobile-sidebar-toggle');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const byId = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
+        const $ = this.dom ? (sel) => this.dom.$(sel) : (sel) => document.querySelector(sel);
+        
+        const sidebar = $('.session-sidebar');
+        const hamburgerBtn = byId('mobile-sidebar-toggle');
 
         if (!hamburgerBtn || !sidebar) {
             console.warn('Mobile sidebar toggle: button or sidebar not found', { hamburgerBtn, sidebar });
@@ -1036,7 +1074,7 @@ class webXTermApp {
         });
 
         // Close sidebar when quick connect button is clicked
-        const connectBtn = document.getElementById('connect-btn');
+        const connectBtn = byId('connect-btn');
         if (connectBtn) {
             connectBtn.addEventListener('click', () => {
                 if (window.innerWidth <= 768) {
@@ -1071,7 +1109,9 @@ function initWebXTermApplication(options = {}) {
         document.body.setAttribute('data-theme', savedTheme);
 
         // Update theme toggle icon
-        const themeToggle = document.getElementById('theme-toggle');
+        // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
+        const byId = dom ? (id) => dom.byId(id) : (id) => document.getElementById(id);
+        const themeToggle = byId('theme-toggle');
         if (themeToggle) {
             const icon = themeToggle.querySelector('.theme-icon');
             if (icon) {
