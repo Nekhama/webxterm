@@ -127,6 +127,7 @@ class webXTermApp {
             const port = urlParams.get('port');
             const user = urlParams.get('user');
             const pwdBase64 = urlParams.get('pwd');  // Base64 编码的密码
+            const proto = urlParams.get('proto') || urlParams.get('protocol') || 'ssh';  // 协议参数，默认ssh
             const autoconnect = urlParams.get('autoconnect') === 'true';
             const fullscreen = urlParams.get('fullscreen') === 'true';
             const title = urlParams.get('title');
@@ -151,7 +152,7 @@ class webXTermApp {
                 }
             }
             
-            this.log('URL 参数检测到连接信息:', { host, port, user, hasPassword: !!password, autoconnect });
+            this.log('URL 参数检测到连接信息:', { host, port, user, proto, hasPassword: !!password, autoconnect });
             
             // 🆕 使用 ScopedDOM 查询（解决多实例冲突）
             const byId = this.dom ? (id) => this.dom.byId(id) : (id) => document.getElementById(id);
@@ -161,6 +162,7 @@ class webXTermApp {
             const portInput = byId('port');
             const usernameInput = byId('username');
             const passwordInput = byId('password');
+            const connectionTypeInput = byId('connection-type');
             
             if (hostnameInput && host) {
                 hostnameInput.value = host;
@@ -173,6 +175,11 @@ class webXTermApp {
             }
             if (passwordInput && password) {
                 passwordInput.value = password;
+            }
+            if (connectionTypeInput && proto) {
+                connectionTypeInput.value = proto.toLowerCase();
+                // 触发 change 事件，更新相关UI（如SSH选项的显示/隐藏）
+                connectionTypeInput.dispatchEvent(new Event('change'));
             }
             
             // 清除 URL 参数（防止密码泄露和刷新后重复操作）
