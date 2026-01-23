@@ -32,7 +32,7 @@ export const en = {
         version: 'Version',
         author: 'Author',
         github: 'GitHub',
-        description: 'A modern web-based SSH/Telnet terminal management tool'
+        description: 'A modern web-based SSH/Telnet/USBSerial terminal management tool'
     },
 
     // Form labels and placeholders

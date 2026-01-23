@@ -1,12 +1,12 @@
 # webXTerm - 现代化网页终端
 
-一个基于浏览器的 SSH/Telnet 远程终端管理工具，提供简洁高效的服务器远程登录和管理体验。
+一个基于浏览器的 SSH/Telnet/USB Serial 远程终端管理工具，提供简洁高效的服务器远程登录和管理体验。
 
 <img alt="image" src="./webxterm.png" />
 
 ## 核心特性
 
-- 🔐 **SSH/Telnet 支持** - 完整的 SSH 和 Telnet 协议实现
+- 🔐 **SSH/Telnet/Serial 支持** - 完整的 SSH、Telnet 和 USB Serial 协议实现
 - 💾 **会话管理** - 保存常用连接配置，支持分组和快速搜索
 - 🔑 **SSH 密钥管理** - 集中管理 SSH 密钥，支持上传和粘贴
 - 🔤 **智能编码检测** - 自动识别 UTF-8/GBK 编码，完美显示中文
@@ -22,6 +22,7 @@
 - 填写服务器信息即可快速连接
 - 支持 SSH 密码认证和密钥认证
 - 支持 Telnet 明文连接
+- 支持 USB Serial 串口连接（可配置设备名和波特率）
 - 自动检测服务器编码
 
 ### 2. 会话管理
@@ -64,6 +65,7 @@
 - **FastAPI** - 现代 Python Web 框架
 - **paramiko** - SSH 协议实现
 - **telnetlib3** - Telnet 协议实现
+- **pyserial-asyncio** - USB Serial 串口通信
 - **SQLite** - 数据存储
 - **uvicorn** - ASGI 服务器
 
@@ -76,9 +78,9 @@
 ### 数据流
 
 ```
-浏览器 <--WebSocket--> FastAPI <--SSH/Telnet--> 远程服务器
+浏览器 <--WebSocket--> FastAPI <--SSH/Telnet/Serial--> 远程服务器/串口设备
   |                        |
-XTerm.js              paramiko/telnetlib3
+XTerm.js              paramiko/telnetlib3/pyserial
 ```
 
 ## 项目结构
@@ -89,7 +91,7 @@ webxterm/
 │   ├── api/               # API 路由
 │   ├── core/              # 核心配置
 │   ├── models/            # 数据模型
-│   ├── protocols/         # SSH/Telnet 实现
+│   ├── protocols/         # SSH/Telnet/Serial 实现
 │   └── services/          # 业务逻辑
 ├── frontend/              # 前端资源
 │   ├── static/
@@ -169,7 +171,7 @@ tar -xzf webxterm-backup-20240101.tar.gz
 nekhama/webxterm:latest
 
 # 指定版本
-nekhama/webxterm:1.0.0
+nekhama/webxterm:1.1.0
 
 # Docker Hub: https://hub.docker.com/r/nekhama/webxterm
 ```
@@ -261,6 +263,7 @@ fastapi >= 0.104.0
 uvicorn >= 0.24.0
 paramiko >= 3.3.0
 telnetlib3 >= 2.0.0
+pyserial-asyncio >= 0.6
 python-multipart >= 0.0.6
 cryptography >= 41.0.0
 ```

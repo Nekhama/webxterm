@@ -32,7 +32,7 @@ export const zh_TW = {
         version: '版本',
         author: '作者',
         github: 'GitHub',
-        description: '現代化網頁版 SSH/Telnet 終端管理工具'
+        description: '現代化網頁版 SSH/Telnet/USBSerial 終端管理工具'
     },
 
     // Form labels and placeholders

@@ -1,12 +1,12 @@
 # webXTerm - Modern Web Terminal
 
-A browser-based SSH/Telnet remote terminal management tool providing clean and efficient server remote access and management experience. No client installation required - simply open your browser to connect to remote servers.
+A browser-based SSH/Telnet/USB Serial remote terminal management tool providing clean and efficient server remote access and management experience. No client installation required - simply open your browser to connect to remote servers.
 
 <img alt="image" src="./webxterm.png" />
 
 ## Core Features
 
-- 🔐 **SSH/Telnet Support** - Complete SSH and Telnet protocol implementation
+- 🔐 **SSH/Telnet/Serial Support** - Complete SSH, Telnet and USB Serial protocol implementation
 - 💾 **Session Management** - Save connection configs with grouping and quick search
 - 🔑 **SSH Key Management** - Centralized SSH key management with upload and paste
 - 🔤 **Smart Encoding** - Auto-detect UTF-8/GBK encoding for perfect Chinese display
@@ -22,6 +22,7 @@ A browser-based SSH/Telnet remote terminal management tool providing clean and e
 - Connect quickly by filling in server information
 - Support SSH password and key authentication
 - Support Telnet plaintext connection
+- Support USB Serial connection (configurable device and baud rate)
 - Auto-detect server encoding
 
 ### 2. Session Management
@@ -64,6 +65,7 @@ Auto-detect and adapt server character encoding:
 - **FastAPI** - Modern Python web framework
 - **paramiko** - SSH protocol implementation
 - **telnetlib3** - Telnet protocol implementation
+- **pyserial-asyncio** - USB Serial communication
 - **SQLite** - Data storage
 - **uvicorn** - ASGI server
 
@@ -76,9 +78,9 @@ Auto-detect and adapt server character encoding:
 ### Data Flow
 
 ```
-Browser <--WebSocket--> FastAPI <--SSH/Telnet--> Remote Server
+Browser <--WebSocket--> FastAPI <--SSH/Telnet/Serial--> Remote Server/Serial Device
    |                       |
-XTerm.js             paramiko/telnetlib3
+XTerm.js             paramiko/telnetlib3/pyserial
 ```
 
 ## Project Structure
@@ -89,7 +91,7 @@ webxterm/
 │   ├── api/               # API routes
 │   ├── core/              # Core configuration
 │   ├── models/            # Data models
-│   ├── protocols/         # SSH/Telnet implementation
+│   ├── protocols/         # SSH/Telnet/Serial implementation
 │   └── services/          # Business logic
 ├── frontend/              # Frontend resources
 │   ├── static/
@@ -169,7 +171,7 @@ tar -xzf webxterm-backup-20240101.tar.gz
 nekhama/webxterm:latest
 
 # Specific version
-nekhama/webxterm:1.0.0
+nekhama/webxterm:1.1.0
 
 # Docker Hub: https://hub.docker.com/r/nekhama/webxterm
 ```
@@ -261,6 +263,7 @@ fastapi >= 0.104.0
 uvicorn >= 0.24.0
 paramiko >= 3.3.0
 telnetlib3 >= 2.0.0
+pyserial-asyncio >= 0.6
 python-multipart >= 0.0.6
 cryptography >= 41.0.0
 ```

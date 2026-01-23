@@ -32,7 +32,7 @@ export const zh_CN = {
         version: '版本',
         author: '作者',
         github: 'GitHub',
-        description: '现代化网页版 SSH/Telnet 终端管理工具'
+        description: '现代化网页版 SSH/Telnet/USBSerial 终端管理工具'
     },
 
     // Form labels and placeholders
