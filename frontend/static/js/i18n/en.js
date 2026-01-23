@@ -67,7 +67,9 @@ export const en = {
         connectPrompt: 'Click "Connect" to start a new session',
         toggleQuickConnect: 'Toggle Quick Connect',
         sshKey: 'SSH Key',
-        sshKeyNone: 'No Key'
+        sshKeyNone: 'No Key',
+        serialDevice: 'Device',
+        serialBaudRate: 'Baud Rate'
     },
 
     // Connection status

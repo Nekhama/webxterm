@@ -99,7 +99,9 @@ export class ConnectionManager {
                 port: config.port,
                 username: config.username,
                 type: config.connection_type,
-                encoding: connectionData.encoding
+                encoding: connectionData.encoding,
+                device: config.device,
+                baud_rate: config.baud_rate
             };
 
             // Store original config for reconnection (including auth credentials)

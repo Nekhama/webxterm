@@ -115,6 +115,12 @@ class DatabaseManager:
             if 'encoding' not in columns:
                 cursor.execute("ALTER TABLE session_configs ADD COLUMN encoding TEXT DEFAULT 'utf-8'")
 
+            if 'device' not in columns:
+                cursor.execute("ALTER TABLE session_configs ADD COLUMN device TEXT")
+
+            if 'baud_rate' not in columns:
+                cursor.execute("ALTER TABLE session_configs ADD COLUMN baud_rate INTEGER")
+
             conn.commit()
 
 
@@ -139,8 +145,8 @@ class SessionRepository:
                 INSERT INTO session_configs
                 (id, name, connection_type, hostname, port, username,
                  password, private_key, passphrase, ssh_key_id, group_name,
-                 created_at, last_used, metadata, encoding)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 created_at, last_used, metadata, encoding, device, baud_rate)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 session_data['id'],
                 session_data['name'],
@@ -156,7 +162,9 @@ class SessionRepository:
                 session_data['created_at'],
                 session_data.get('last_used'),
                 metadata_json,
-                session_data.get('encoding', 'utf-8')
+                session_data.get('encoding', 'utf-8'),
+                session_data.get('device'),
+                session_data.get('baud_rate')
             ))
 
             conn.commit()

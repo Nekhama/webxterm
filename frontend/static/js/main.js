@@ -491,6 +491,8 @@ class webXTermApp {
                 connection_type: fullSession.connection_type || 'ssh',
                 terminal_type: 'xterm-256color',
                 encoding: fullSession.encoding || 'auto',
+                device: fullSession.device,
+                baud_rate: fullSession.baud_rate,
                 sessionInfo: {
                     id: fullSession.id,
                     name: fullSession.name,
@@ -498,7 +500,9 @@ class webXTermApp {
                     hostname: fullSession.hostname,
                     port: fullSession.port,
                     username: fullSession.username,
-                    connection_type: fullSession.connection_type
+                    connection_type: fullSession.connection_type,
+                    device: fullSession.device,
+                    baud_rate: fullSession.baud_rate
                 }
             };
 
@@ -657,6 +661,8 @@ class webXTermApp {
                 connection_type: sessionData.connection_type || 'ssh',
                 encoding: sessionData.encoding || 'auto',
                 group_name: sessionData.group_name || null,
+                device: sessionData.device || null,
+                baud_rate: sessionData.baud_rate || null,
                 terminal_type: 'xterm-256color'
             };
 

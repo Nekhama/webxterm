@@ -67,7 +67,9 @@ export const zh_CN = {
         connectPrompt: '点击"连接"开始新会话',
         toggleQuickConnect: '切换快速连接',
         sshKey: 'SSH密钥',
-        sshKeyNone: '不使用密钥'
+        sshKeyNone: '不使用密钥',
+        serialDevice: '设备',
+        serialBaudRate: '波特率'
     },
 
     // Connection status

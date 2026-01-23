@@ -5,6 +5,7 @@ Connection Factory for creating protocol instances
 from ..models.session import ConnectionType
 from .ssh import SSHProtocol
 from .telnet import TelnetProtocol
+from .serial import SerialProtocol
 
 
 class ConnectionFactory:
@@ -30,6 +31,8 @@ class ConnectionFactory:
             protocol = SSHProtocol(config)
         elif connection_type == ConnectionType.TELNET:
             protocol = TelnetProtocol(config)
+        elif connection_type == ConnectionType.USBSERIAL:
+            protocol = SerialProtocol(config)
         else:
             raise ValueError(f"Unsupported connection type: {connection_type}")
 
@@ -43,13 +46,14 @@ class ConnectionFactory:
     @staticmethod
     def get_supported_types():
         """Get list of supported connection types"""
-        return [ConnectionType.SSH, ConnectionType.TELNET]
+        return [ConnectionType.SSH, ConnectionType.TELNET, ConnectionType.USBSERIAL]
 
     @staticmethod
     def get_default_port(connection_type: ConnectionType) -> int:
         """Get default port for connection type"""
         defaults = {
             ConnectionType.SSH: 22,
-            ConnectionType.TELNET: 23
+            ConnectionType.TELNET: 23,
+            ConnectionType.USBSERIAL: 0
         }
         return defaults.get(connection_type, 22)

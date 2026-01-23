@@ -67,7 +67,9 @@ export const zh_TW = {
         connectPrompt: '點擊"連接"開始新會話',
         toggleQuickConnect: '切換快速連接',
         sshKey: 'SSH密鑰',
-        sshKeyNone: '不使用密鑰'
+        sshKeyNone: '不使用密鑰',
+        serialDevice: '裝置',
+        serialBaudRate: '鮑率'
     },
 
     // Connection status

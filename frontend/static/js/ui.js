@@ -56,6 +56,9 @@ export class UIManager {
             saveSessionBtn: this.byId('save-session-btn'),
             sshOptions: this.byId('ssh-options'),
             moreOptionsBtn: this.byId('more-options-btn'),
+            serialOptions: this.byId('serial-options'),
+            serialDevice: this.byId('serial-device'),
+            serialBaudrate: this.byId('serial-baudrate'),
 
             // Sessions
             sessionsList: this.byId('sessions-list'),
@@ -95,6 +98,9 @@ export class UIManager {
             sessionCancel: this.byId('session-cancel'),
             sessionMoreOptionsBtn: this.byId('session-more-options-btn'),
             sessionSshOptions: this.byId('session-ssh-options'),
+            sessionSerialOptions: this.byId('session-serial-options'),
+            sessionSerialDevice: this.byId('session-serial-device'),
+            sessionSerialBaudrate: this.byId('session-serial-baudrate'),
 
             // Delete modal
             deleteModal: this.byId('delete-modal'),
@@ -136,13 +142,16 @@ export class UIManager {
 
         // Connection type change
         this.elements.connectionType?.addEventListener('change', (e) => {
-            const isSSH = e.target.value === 'ssh';
+            const connType = e.target.value;
+            const isSSH = connType === 'ssh';
+            const isSerial = connType === 'usbserial';
             this.updateMoreOptionsVisibility(isSSH);
+            this.updateSerialOptionsVisibility(isSerial);
 
             // Update default port
             if (isSSH && this.elements.port.value === '23') {
                 this.elements.port.value = '22';
-            } else if (!isSSH && this.elements.port.value === '22') {
+            } else if (connType === 'telnet' && this.elements.port.value === '22') {
                 this.elements.port.value = '23';
             }
         });
@@ -286,11 +295,14 @@ export class UIManager {
 
         // Session modal connection type change
         this.elements.sessionConnectionType?.addEventListener('change', (e) => {
-            this.updateSessionSSHOptionsVisibility(e.target.value === 'ssh');
+            const connType = e.target.value;
+            const isSerial = connType === 'usbserial';
+            this.updateSessionSSHOptionsVisibility(connType === 'ssh');
+            this.updateSessionSerialOptionsVisibility(isSerial);
             // Update default port
-            if (e.target.value === 'ssh' && this.elements.sessionPort.value === '23') {
+            if (connType === 'ssh' && this.elements.sessionPort.value === '23') {
                 this.elements.sessionPort.value = '22';
-            } else if (e.target.value === 'telnet' && this.elements.sessionPort.value === '22') {
+            } else if (connType === 'telnet' && this.elements.sessionPort.value === '22') {
                 this.elements.sessionPort.value = '23';
             }
         });
@@ -436,10 +448,44 @@ export class UIManager {
         }
     }
 
+    updateSerialOptionsVisibility(isSerial) {
+        // Quick connect form rows
+        const hostnameRow = this.elements.hostname?.closest('.form-row-compact');
+        const usernameRow = this.elements.username?.closest('.form-row-compact');
+        const passwordRow = this.elements.password?.closest('.form-row-compact');
+
+        if (isSerial) {
+            // Hide hostname, username, password rows
+            if (hostnameRow) hostnameRow.style.display = 'none';
+            if (usernameRow) usernameRow.style.display = 'none';
+            if (passwordRow) passwordRow.style.display = 'none';
+            // Hide port input but keep protocol select visible
+            if (this.elements.port) this.elements.port.style.display = 'none';
+            // Remove required to prevent form validation blocking submit
+            if (this.elements.hostname) this.elements.hostname.removeAttribute('required');
+            if (this.elements.username) this.elements.username.removeAttribute('required');
+            // Show serial options
+            if (this.elements.serialOptions) this.elements.serialOptions.classList.remove('hidden');
+        } else {
+            // Show hostname, username, password rows
+            if (hostnameRow) hostnameRow.style.display = '';
+            if (usernameRow) usernameRow.style.display = '';
+            if (passwordRow) passwordRow.style.display = '';
+            // Show port input
+            if (this.elements.port) this.elements.port.style.display = '';
+            // Restore required attributes
+            if (this.elements.hostname) this.elements.hostname.setAttribute('required', '');
+            if (this.elements.username) this.elements.username.setAttribute('required', '');
+            // Hide serial options
+            if (this.elements.serialOptions) this.elements.serialOptions.classList.add('hidden');
+        }
+    }
+
     initializeMoreOptionsState() {
         // Initialize the more options based on current connection type
         const currentType = this.elements.connectionType?.value || 'ssh';
         this.updateMoreOptionsVisibility(currentType === 'ssh');
+        this.updateSerialOptionsVisibility(currentType === 'usbserial');
     }
 
     initializeModalStates() {
@@ -483,10 +529,11 @@ export class UIManager {
 
     getQuickConnectFormData() {
         const sshKeySelect = this.byId('ssh-key-select');
-        return {
+        const connectionType = this.elements.connectionType?.value || 'ssh';
+        const data = {
             hostname: this.elements.hostname?.value || '',
             port: this.elements.port?.value || '22',
-            connection_type: this.elements.connectionType?.value || 'ssh',
+            connection_type: connectionType,
             username: this.elements.username?.value || '',
             password: this.elements.password?.value || '',
             private_key: this.elements.privateKey?.value || '',
@@ -494,6 +541,15 @@ export class UIManager {
             ssh_key_id: sshKeySelect?.value || null,
             encoding: this.elements.encoding?.value || 'auto'
         };
+
+        if (connectionType === 'usbserial') {
+            data.device = this.elements.serialDevice?.value || 'ttyUSB0';
+            data.baud_rate = parseInt(this.elements.serialBaudrate?.value) || 115200;
+            data.hostname = 'localhost';
+            data.username = 'serial';
+        }
+
+        return data;
     }
 
     setConnectionStatus(status) {
@@ -571,7 +627,9 @@ export class UIManager {
             this.elements.username,
             this.elements.password,
             this.elements.privateKey,
-            this.elements.passphrase
+            this.elements.passphrase,
+            this.elements.serialDevice,
+            this.elements.serialBaudrate
         ];
 
         formElements.forEach(element => {
@@ -603,7 +661,14 @@ export class UIManager {
             const connectionType = type.toUpperCase();
             const typeLabel = `<span class="session-type ${type}">${connectionType}</span>`;
 
-            let connectionText = `${typeLabel} ${info.username}@${info.hostname}:${info.port}`;
+            let connectionText;
+            if (type === 'usbserial') {
+                const device = info.device || 'ttyUSB0';
+                const baudRate = info.baud_rate || 115200;
+                connectionText = `${typeLabel} /dev/${device} @ ${baudRate}`;
+            } else {
+                connectionText = `${typeLabel} ${info.username}@${info.hostname}:${info.port}`;
+            }
 
             // Add session name if available
             if (info.sessionName || info.name) {
@@ -746,7 +811,10 @@ export class UIManager {
                             </div>
                             <div class="session-details">
                                 <span class="session-type ${session.connection_type}">${session.connection_type.toUpperCase()}</span>
-                                <span>${this.escapeHtml(session.username)}@${this.escapeHtml(session.hostname)}:${session.port}</span>
+                                <span>${session.connection_type === 'usbserial'
+                                    ? `/dev/${this.escapeHtml(session.device || 'ttyUSB0')} @ ${session.baud_rate || 115200}`
+                                    : `${this.escapeHtml(session.username)}@${this.escapeHtml(session.hostname)}:${session.port}`
+                                }</span>
                             </div>
                         </div>
                         <div class="session-actions">
@@ -992,9 +1060,10 @@ export class UIManager {
             this.fillSessionForm(formData, true);
         }
 
-        // Initialize SSH options visibility based on connection type
+        // Initialize SSH/Serial options visibility based on connection type
         const connectionType = this.elements.sessionConnectionType?.value || 'ssh';
         this.updateSessionSSHOptionsVisibility(connectionType === 'ssh');
+        this.updateSessionSerialOptionsVisibility(connectionType === 'usbserial');
 
         this.elements.modalOverlay.classList.remove('hidden');
         this.elements.sessionName.focus();
@@ -1066,12 +1135,15 @@ export class UIManager {
     handleSessionSave() {
         // Collect all form data
         const sessionSshKeySelect = this.byId('session-ssh-key-select');
+        const connectionType = this.elements.sessionConnectionType?.value;
+        const isSerial = connectionType === 'usbserial';
+
         const sessionData = {
             name: this.elements.sessionName?.value?.trim(),
-            hostname: this.elements.sessionHostname?.value?.trim(),
-            connection_type: this.elements.sessionConnectionType?.value,
+            hostname: isSerial ? 'localhost' : (this.elements.sessionHostname?.value?.trim()),
+            connection_type: connectionType,
             port: parseInt(this.elements.sessionPort?.value) || 22,
-            username: this.elements.sessionUsername?.value?.trim(),
+            username: isSerial ? 'serial' : (this.elements.sessionUsername?.value?.trim()),
             password: this.elements.sessionPassword?.value || '',
             private_key: this.elements.sessionPrivateKey?.value || '',
             passphrase: this.elements.sessionPassphrase?.value || '',
@@ -1080,24 +1152,29 @@ export class UIManager {
             group_name: this.elements.sessionGroup?.value?.trim()
         };
 
+        if (isSerial) {
+            sessionData.device = this.elements.sessionSerialDevice?.value || 'ttyUSB0';
+            sessionData.baud_rate = parseInt(this.elements.sessionSerialBaudrate?.value) || 115200;
+        }
+
         // Validate required fields
         if (!sessionData.name) {
             this.showError('Session name is required');
             return;
         }
 
-        if (!sessionData.hostname) {
+        if (!isSerial && !sessionData.hostname) {
             this.showError('Hostname is required');
             return;
         }
 
-        if (!sessionData.username) {
+        if (!isSerial && !sessionData.username) {
             this.showError('Username is required');
             return;
         }
 
-        // Validate port range
-        if (sessionData.port < 1 || sessionData.port > 65535) {
+        // Validate port range (only for non-serial)
+        if (!isSerial && (sessionData.port < 1 || sessionData.port > 65535)) {
             this.showError('Port must be between 1 and 65535');
             return;
         }
@@ -1358,6 +1435,34 @@ export class UIManager {
         }
     }
 
+    updateSessionSerialOptionsVisibility(isSerial) {
+        // Session modal fields
+        const hostnameGroup = this.elements.sessionHostname?.closest('.form-group');
+        const usernameGroup = this.elements.sessionUsername?.closest('.form-group');
+        const passwordGroup = this.elements.sessionPassword?.closest('.form-group');
+        const portInput = this.elements.sessionPort;
+
+        if (isSerial) {
+            // Hide hostname, username, password fields
+            if (hostnameGroup) hostnameGroup.style.display = 'none';
+            if (usernameGroup) usernameGroup.style.display = 'none';
+            if (passwordGroup) passwordGroup.style.display = 'none';
+            // Hide port input
+            if (portInput) portInput.style.display = 'none';
+            // Show serial options
+            if (this.elements.sessionSerialOptions) this.elements.sessionSerialOptions.classList.remove('hidden');
+        } else {
+            // Show hostname, username, password fields
+            if (hostnameGroup) hostnameGroup.style.display = '';
+            if (usernameGroup) usernameGroup.style.display = '';
+            if (passwordGroup) passwordGroup.style.display = '';
+            // Show port input
+            if (portInput) portInput.style.display = '';
+            // Hide serial options
+            if (this.elements.sessionSerialOptions) this.elements.sessionSerialOptions.classList.add('hidden');
+        }
+    }
+
     async loadCompleteSessionData(sessionId) {
         try {
             // Access the main app's session manager to get complete session data
@@ -1431,6 +1536,14 @@ export class UIManager {
 
         if (this.elements.sessionEncoding) {
             this.elements.sessionEncoding.value = data.encoding || 'auto';
+        }
+
+        // Fill serial fields
+        if (this.elements.sessionSerialDevice) {
+            this.elements.sessionSerialDevice.value = data.device || 'ttyUSB0';
+        }
+        if (this.elements.sessionSerialBaudrate) {
+            this.elements.sessionSerialBaudrate.value = data.baud_rate || '115200';
         }
     }
 
@@ -1583,6 +1696,14 @@ export class UIManager {
         }
         if (this.elements.encoding) {
             this.elements.encoding.value = session.encoding || 'auto';
+        }
+
+        // Fill serial fields
+        if (this.elements.serialDevice) {
+            this.elements.serialDevice.value = session.device || 'ttyUSB0';
+        }
+        if (this.elements.serialBaudrate) {
+            this.elements.serialBaudrate.value = session.baud_rate || '115200';
         }
 
         // Fill SSH key selector if available

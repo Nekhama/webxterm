@@ -17,3 +17,4 @@ passlib[bcrypt]==1.7.4
 # Terminal Protocols
 paramiko==3.4.0          # SSH
 telnetlib3>=2.0.8        # Telnet 支持
+pyserial-asyncio>=0.6    # USB-Serial 支持

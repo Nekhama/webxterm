@@ -105,6 +105,7 @@
                             <select id="connection-type" name="connection_type">
                                 <option value="ssh">SSH</option>
                                 <option value="telnet">TELNET</option>
+                                <option value="usbserial">USB-Serial</option>
                             </select>
                             <input type="number" id="port" name="port"
                                    value="22" min="1" max="65535" data-i18n-title="form.port">
@@ -156,6 +157,34 @@
                                 <option value="auto" selected data-i18n="form.encodingAuto">自动检测</option>
                                 <option value="utf-8" data-i18n="form.encodingUtf8">UTF-8</option>
                                 <option value="gbk" data-i18n="form.encodingGbk">GBK/GB2312</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="serial-options" class="serial-options hidden">
+                        <div class="form-row-compact">
+                            <label for="serial-device" data-i18n="form.serialDevice">设备：</label>
+                            <select id="serial-device" name="device">
+                                <option value="ttyUSB0">ttyUSB0</option>
+                                <option value="ttyUSB1">ttyUSB1</option>
+                                <option value="ttyUSB2">ttyUSB2</option>
+                                <option value="ttyUSB3">ttyUSB3</option>
+                                <option value="ttyUSB4">ttyUSB4</option>
+                                <option value="ttyUSB5">ttyUSB5</option>
+                                <option value="ttyUSB6">ttyUSB6</option>
+                                <option value="ttyUSB7">ttyUSB7</option>
+                                <option value="ttyUSB8">ttyUSB8</option>
+                                <option value="ttyUSB9">ttyUSB9</option>
+                            </select>
+                        </div>
+                        <div class="form-row-compact">
+                            <label for="serial-baudrate" data-i18n="form.serialBaudRate">波特率：</label>
+                            <select id="serial-baudrate" name="baud_rate">
+                                <option value="9600">9600</option>
+                                <option value="19200">19200</option>
+                                <option value="38400">38400</option>
+                                <option value="115200" selected>115200</option>
+                                <option value="1500000">1500000</option>
                             </select>
                         </div>
                     </div>
@@ -269,6 +298,7 @@
                             <select id="session-connection-type" name="connection_type">
                                 <option value="ssh">SSH</option>
                                 <option value="telnet">Telnet</option>
+                                <option value="usbserial">USB-Serial</option>
                             </select>
                             <input type="number" id="session-port" name="port"
                                    value="22" min="1" max="65535" data-i18n-title="modals.saveSession.port">
@@ -312,6 +342,34 @@
                             <label for="session-passphrase" data-i18n="form.passphrase">Key Passphrase</label>
                             <input type="password" id="session-passphrase" name="passphrase"
                                    data-i18n-placeholder="form.passphrasePlaceholder">
+                        </div>
+                    </div>
+
+                    <div id="session-serial-options" class="serial-options hidden">
+                        <div class="form-group">
+                            <label for="session-serial-device" data-i18n="form.serialDevice">Device</label>
+                            <select id="session-serial-device" name="device">
+                                <option value="ttyUSB0">ttyUSB0</option>
+                                <option value="ttyUSB1">ttyUSB1</option>
+                                <option value="ttyUSB2">ttyUSB2</option>
+                                <option value="ttyUSB3">ttyUSB3</option>
+                                <option value="ttyUSB4">ttyUSB4</option>
+                                <option value="ttyUSB5">ttyUSB5</option>
+                                <option value="ttyUSB6">ttyUSB6</option>
+                                <option value="ttyUSB7">ttyUSB7</option>
+                                <option value="ttyUSB8">ttyUSB8</option>
+                                <option value="ttyUSB9">ttyUSB9</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="session-serial-baudrate" data-i18n="form.serialBaudRate">Baud Rate</label>
+                            <select id="session-serial-baudrate" name="baud_rate">
+                                <option value="9600">9600</option>
+                                <option value="19200">19200</option>
+                                <option value="38400">38400</option>
+                                <option value="115200" selected>115200</option>
+                                <option value="1500000">1500000</option>
+                            </select>
                         </div>
                     </div>
 

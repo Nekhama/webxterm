@@ -45,6 +45,8 @@ async def create_session(
             "ssh_key_id": session_data.ssh_key_id,
             "group_name": session_data.group_name,
             "encoding": session_data.encoding,
+            "device": session_data.device,
+            "baud_rate": session_data.baud_rate,
             "created_at": datetime.utcnow().isoformat(),
             "metadata": session_data.metadata or {}
         }
@@ -63,6 +65,8 @@ async def create_session(
             ssh_key_id=created_session.get("ssh_key_id"),
             group_name=created_session["group_name"],
             encoding=created_session["encoding"],
+            device=created_session.get("device"),
+            baud_rate=created_session.get("baud_rate"),
             created_at=created_session["created_at"],
             last_used=created_session["last_used"],
             metadata=created_session["metadata"]
@@ -98,6 +102,8 @@ async def list_sessions(
                     ssh_key_id=session.get("ssh_key_id"),
                     group_name=session["group_name"],
                     encoding=session.get("encoding", "utf-8"),
+                    device=session.get("device"),
+                    baud_rate=session.get("baud_rate"),
                     created_at=session["created_at"],
                     last_used=session["last_used"],
                     metadata=session["metadata"]
@@ -136,6 +142,8 @@ async def get_session(
             ssh_key_id=session.get("ssh_key_id"),
             group_name=session["group_name"],
             encoding=session["encoding"],
+            device=session.get("device"),
+            baud_rate=session.get("baud_rate"),
             created_at=session["created_at"],
             last_used=session["last_used"],
             metadata=session["metadata"]
@@ -188,6 +196,8 @@ async def update_session(
             ssh_key_id=updated_session.get("ssh_key_id"),
             group_name=updated_session["group_name"],
             encoding=updated_session.get("encoding", "utf-8"),
+            device=updated_session.get("device"),
+            baud_rate=updated_session.get("baud_rate"),
             created_at=updated_session["created_at"],
             last_used=updated_session["last_used"],
             metadata=updated_session["metadata"]
@@ -244,6 +254,8 @@ async def use_session(
             ssh_key_id=session.get("ssh_key_id"),
             group_name=session["group_name"],
             encoding=session.get("encoding", "utf-8"),
+            device=session.get("device"),
+            baud_rate=session.get("baud_rate"),
             created_at=session["created_at"],
             last_used=session["last_used"],
             metadata=session["metadata"]

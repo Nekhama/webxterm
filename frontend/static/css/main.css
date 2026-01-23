@@ -712,6 +712,10 @@ html, body {
     border-left-color: var(--accent-orange);
 }
 
+.session-item.usbserial {
+    border-left-color: var(--accent-green);
+}
+
 
 .session-header {
     display: flex;
@@ -791,6 +795,11 @@ html, body {
 .session-type.telnet {
     background-color: rgba(255, 140, 0, 0.2);
     color: var(--accent-orange);
+}
+
+.session-type.usbserial {
+    background-color: rgba(22, 130, 93, 0.2);
+    color: var(--accent-green);
 }
 
 .session-group {
