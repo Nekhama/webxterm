@@ -83,23 +83,32 @@ async def list_sessions(
     """
     sessions = db.get_all(group_name=group_name, connection_type=connection_type)
 
-    return [
-        SessionConfigResponse(
-            id=session["id"],
-            name=session["name"],
-            connection_type=session["connection_type"],
-            hostname=session["hostname"],
-            port=session["port"],
-            username=session["username"],
-            ssh_key_id=session.get("ssh_key_id"),
-            group_name=session["group_name"],
-            encoding=session.get("encoding", "utf-8"),
-            created_at=session["created_at"],
-            last_used=session["last_used"],
-            metadata=session["metadata"]
-        )
-        for session in sessions
-    ]
+    # 容错处理：过滤无效的会话配置
+    valid_sessions = []
+    for session in sessions:
+        try:
+            valid_sessions.append(
+                SessionConfigResponse(
+                    id=session["id"],
+                    name=session["name"],
+                    connection_type=session["connection_type"],
+                    hostname=session["hostname"],
+                    port=session["port"],
+                    username=session["username"],
+                    ssh_key_id=session.get("ssh_key_id"),
+                    group_name=session["group_name"],
+                    encoding=session.get("encoding", "utf-8"),
+                    created_at=session["created_at"],
+                    last_used=session["last_used"],
+                    metadata=session["metadata"]
+                )
+            )
+        except Exception as e:
+            # 记录警告但不中断
+            print(f"⚠️ 跳过无效会话配置 [{session.get('id', 'unknown')}]: {e}")
+            continue
+    
+    return valid_sessions
 
 
 @router.get("/{session_id}", response_model=SessionConfigResponse)
@@ -115,20 +124,25 @@ async def get_session(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    return SessionConfigResponse(
-        id=session["id"],
-        name=session["name"],
-        connection_type=session["connection_type"],
-        hostname=session["hostname"],
-        port=session["port"],
-        username=session["username"],
-        ssh_key_id=session.get("ssh_key_id"),
-        group_name=session["group_name"],
-        encoding=session["encoding"],
-        created_at=session["created_at"],
-        last_used=session["last_used"],
-        metadata=session["metadata"]
-    )
+    # 容错处理：如果数据无效，返回错误而不是崩溃
+    try:
+        return SessionConfigResponse(
+            id=session["id"],
+            name=session["name"],
+            connection_type=session["connection_type"],
+            hostname=session["hostname"],
+            port=session["port"],
+            username=session["username"],
+            ssh_key_id=session.get("ssh_key_id"),
+            group_name=session["group_name"],
+            encoding=session["encoding"],
+            created_at=session["created_at"],
+            last_used=session["last_used"],
+            metadata=session["metadata"]
+        )
+    except Exception as e:
+        print(f"⚠️ 会话配置数据无效 [{session_id}]: {e}")
+        raise HTTPException(status_code=500, detail=f"会话配置数据无效: {e}")
 
 
 @router.put("/{session_id}", response_model=SessionConfigResponse)
