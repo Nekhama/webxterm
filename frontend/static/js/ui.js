@@ -145,8 +145,10 @@ export class UIManager {
             const connType = e.target.value;
             const isSSH = connType === 'ssh';
             const isSerial = connType === 'usbserial';
+            const isLocal = connType === 'local';
             this.updateMoreOptionsVisibility(isSSH);
             this.updateSerialOptionsVisibility(isSerial);
+            this.updateLocalOptionsVisibility(isLocal);
 
             // Update default port
             if (isSSH && this.elements.port.value === '23') {
@@ -297,8 +299,10 @@ export class UIManager {
         this.elements.sessionConnectionType?.addEventListener('change', (e) => {
             const connType = e.target.value;
             const isSerial = connType === 'usbserial';
+            const isLocal = connType === 'local';
             this.updateSessionSSHOptionsVisibility(connType === 'ssh');
             this.updateSessionSerialOptionsVisibility(isSerial);
+            this.updateSessionLocalOptionsVisibility(isLocal);
             // Update default port
             if (connType === 'ssh' && this.elements.sessionPort.value === '23') {
                 this.elements.sessionPort.value = '22';
@@ -481,11 +485,50 @@ export class UIManager {
         }
     }
 
+    updateLocalOptionsVisibility(isLocal) {
+        // Quick connect form rows
+        const hostnameRow = this.elements.hostname?.closest('.form-row-compact');
+        const usernameRow = this.elements.username?.closest('.form-row-compact');
+        const passwordRow = this.elements.password?.closest('.form-row-compact');
+        const protocolRow = this.elements.connectionType?.closest('.form-row-protocol');
+        const moreOptionsToggle = this.$('.more-options-toggle');
+
+        if (isLocal) {
+            // Hide hostname row
+            if (hostnameRow) hostnameRow.style.display = 'none';
+            // Hide port input but keep protocol select visible
+            if (this.elements.port) this.elements.port.style.display = 'none';
+            // Keep username and password visible for local login
+            if (usernameRow) usernameRow.style.display = '';
+            if (passwordRow) passwordRow.style.display = '';
+            // Remove required from hostname
+            if (this.elements.hostname) this.elements.hostname.removeAttribute('required');
+            // Hide more options toggle (no SSH options for local)
+            if (moreOptionsToggle) moreOptionsToggle.style.display = 'none';
+            // Hide SSH options
+            if (this.elements.sshOptions) this.elements.sshOptions.classList.add('hidden');
+            // Hide serial options
+            if (this.elements.serialOptions) this.elements.serialOptions.classList.add('hidden');
+        } else {
+            // Only restore visibility if not serial type
+            const currentType = this.elements.connectionType?.value;
+            if (currentType !== 'usbserial') {
+                // Show hostname row
+                if (hostnameRow) hostnameRow.style.display = '';
+                // Show port input
+                if (this.elements.port) this.elements.port.style.display = '';
+                // Restore required for hostname
+                if (this.elements.hostname) this.elements.hostname.setAttribute('required', '');
+            }
+        }
+    }
+
     initializeMoreOptionsState() {
         // Initialize the more options based on current connection type
         const currentType = this.elements.connectionType?.value || 'ssh';
         this.updateMoreOptionsVisibility(currentType === 'ssh');
         this.updateSerialOptionsVisibility(currentType === 'usbserial');
+        this.updateLocalOptionsVisibility(currentType === 'local');
     }
 
     initializeModalStates() {
@@ -547,6 +590,10 @@ export class UIManager {
             data.baud_rate = parseInt(this.elements.serialBaudrate?.value) || 115200;
             data.hostname = 'localhost';
             data.username = 'serial';
+        } else if (connectionType === 'local') {
+            data.hostname = 'localhost';
+            data.port = '0';
+            // Keep username and password from form for auto-login
         }
 
         return data;
@@ -666,6 +713,11 @@ export class UIManager {
                 const device = info.device || 'ttyUSB0';
                 const baudRate = info.baud_rate || 115200;
                 connectionText = `${typeLabel} /dev/${device} @ ${baudRate}`;
+            } else if (type === 'local') {
+                connectionText = `${typeLabel} localhost`;
+                if (info.username) {
+                    connectionText = `${typeLabel} ${info.username}@localhost`;
+                }
             } else {
                 connectionText = `${typeLabel} ${info.username}@${info.hostname}:${info.port}`;
             }
@@ -813,6 +865,8 @@ export class UIManager {
                                 <span class="session-type ${session.connection_type}">${session.connection_type.toUpperCase()}</span>
                                 <span>${session.connection_type === 'usbserial'
                                     ? `/dev/${this.escapeHtml(session.device || 'ttyUSB0')} @ ${session.baud_rate || 115200}`
+                                    : session.connection_type === 'local'
+                                    ? `${this.escapeHtml(session.username || '')}@localhost`
                                     : `${this.escapeHtml(session.username)}@${this.escapeHtml(session.hostname)}:${session.port}`
                                 }</span>
                             </div>
@@ -1137,10 +1191,11 @@ export class UIManager {
         const sessionSshKeySelect = this.byId('session-ssh-key-select');
         const connectionType = this.elements.sessionConnectionType?.value;
         const isSerial = connectionType === 'usbserial';
+        const isLocal = connectionType === 'local';
 
         const sessionData = {
             name: this.elements.sessionName?.value?.trim(),
-            hostname: isSerial ? 'localhost' : (this.elements.sessionHostname?.value?.trim()),
+            hostname: (isSerial || isLocal) ? 'localhost' : (this.elements.sessionHostname?.value?.trim()),
             connection_type: connectionType,
             port: parseInt(this.elements.sessionPort?.value) || 22,
             username: isSerial ? 'serial' : (this.elements.sessionUsername?.value?.trim()),
@@ -1157,13 +1212,17 @@ export class UIManager {
             sessionData.baud_rate = parseInt(this.elements.sessionSerialBaudrate?.value) || 115200;
         }
 
+        if (isLocal) {
+            sessionData.port = 0;
+        }
+
         // Validate required fields
         if (!sessionData.name) {
             this.showError('Session name is required');
             return;
         }
 
-        if (!isSerial && !sessionData.hostname) {
+        if (!isSerial && !isLocal && !sessionData.hostname) {
             this.showError('Hostname is required');
             return;
         }
@@ -1173,8 +1232,8 @@ export class UIManager {
             return;
         }
 
-        // Validate port range (only for non-serial)
-        if (!isSerial && (sessionData.port < 1 || sessionData.port > 65535)) {
+        // Validate port range (only for non-serial and non-local)
+        if (!isSerial && !isLocal && (sessionData.port < 1 || sessionData.port > 65535)) {
             this.showError('Port must be between 1 and 65535');
             return;
         }
@@ -1460,6 +1519,40 @@ export class UIManager {
             if (portInput) portInput.style.display = '';
             // Hide serial options
             if (this.elements.sessionSerialOptions) this.elements.sessionSerialOptions.classList.add('hidden');
+        }
+    }
+
+    updateSessionLocalOptionsVisibility(isLocal) {
+        // Session modal fields
+        const hostnameGroup = this.elements.sessionHostname?.closest('.form-group');
+        const usernameGroup = this.elements.sessionUsername?.closest('.form-group');
+        const passwordGroup = this.elements.sessionPassword?.closest('.form-group');
+        const portInput = this.elements.sessionPort;
+        const sshOptionsToggle = this.$('.ssh-options-toggle');
+
+        if (isLocal) {
+            // Hide hostname field
+            if (hostnameGroup) hostnameGroup.style.display = 'none';
+            // Hide port input
+            if (portInput) portInput.style.display = 'none';
+            // Keep username and password visible for local login
+            if (usernameGroup) usernameGroup.style.display = '';
+            if (passwordGroup) passwordGroup.style.display = '';
+            // Hide SSH options toggle
+            if (sshOptionsToggle) sshOptionsToggle.style.display = 'none';
+            // Hide SSH options
+            if (this.elements.sessionSshOptions) this.elements.sessionSshOptions.classList.add('hidden');
+            // Hide serial options
+            if (this.elements.sessionSerialOptions) this.elements.sessionSerialOptions.classList.add('hidden');
+        } else {
+            // Only restore visibility if not serial type
+            const currentType = this.elements.sessionConnectionType?.value;
+            if (currentType !== 'usbserial') {
+                // Show hostname field
+                if (hostnameGroup) hostnameGroup.style.display = '';
+                // Show port input
+                if (portInput) portInput.style.display = '';
+            }
         }
     }
 

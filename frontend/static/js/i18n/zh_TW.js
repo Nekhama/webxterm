@@ -69,7 +69,8 @@ export const zh_TW = {
         sshKey: 'SSH密鑰',
         sshKeyNone: '不使用密鑰',
         serialDevice: '裝置',
-        serialBaudRate: '鮑率'
+        serialBaudRate: '鮑率',
+        localTerminal: '本地終端'
     },
 
     // Connection status

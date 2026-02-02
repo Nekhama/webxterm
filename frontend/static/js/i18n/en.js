@@ -69,7 +69,8 @@ export const en = {
         sshKey: 'SSH Key',
         sshKeyNone: 'No Key',
         serialDevice: 'Device',
-        serialBaudRate: 'Baud Rate'
+        serialBaudRate: 'Baud Rate',
+        localTerminal: 'Local Terminal'
     },
 
     // Connection status

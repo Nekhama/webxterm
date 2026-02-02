@@ -69,7 +69,8 @@ export const zh_CN = {
         sshKey: 'SSH密钥',
         sshKeyNone: '不使用密钥',
         serialDevice: '设备',
-        serialBaudRate: '波特率'
+        serialBaudRate: '波特率',
+        localTerminal: '本地终端'
     },
 
     // Connection status

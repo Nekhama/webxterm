@@ -13,6 +13,7 @@ class ConnectionType(str, enum.Enum):
     SSH = "ssh"
     TELNET = "telnet"
     USBSERIAL = "usbserial"
+    LOCAL = "local"
 
 
 # Pydantic models for API
